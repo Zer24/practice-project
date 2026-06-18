@@ -1,0 +1,36 @@
+spring:
+  profiles:
+    active: local  # по умолчанию local
+---
+# Локальный профиль (без Docker)
+spring:
+  config:
+    activate:
+      on-profile: local
+  data:
+    mongodb:
+      database: hotel_booking_db
+      host: localhost
+      port: 27017
+      username: hotel_admin
+      password: hotel_password_123
+      authentication-database: hotel_booking_db
+---
+# Docker профиль
+spring:
+  config:
+    activate:
+      on-profile: docker
+  data:
+    mongodb:
+      database: hotel_booking_db
+      host: mongodb  # имя сервиса в docker-compose
+      port: 27017
+      username: hotel_admin
+      password: hotel_password_123
+      authentication-database: hotel_booking_db
+
+app:
+  security:
+    bcrypt:
+      strength: 10

@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: hotel-booking-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro  # Добавьте эту строку
+    environment:
+      - MONGO_INITDB_DATABASE=hotel_booking_db
+    networks:
+      - hotel-network
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: hotel-booking-app
+    stdin_open: true
+    tty: true
+    environment:
+      - SPRING_DATA_MONGODB_HOST=mongodb
+      - SPRING_DATA_MONGODB_PORT=27017
+      - SPRING_DATA_MONGODB_DATABASE=hotel_booking_db
+      - SPRING_DATA_MONGODB_USERNAME=hotel_admin
+      - SPRING_DATA_MONGODB_PASSWORD=hotel_password_123
+      - SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE=hotel_booking_db
+    networks:
+      - hotel-network
+    depends_on:
+      - mongodb
+
+volumes:
+  mongo_data:
+
+networks:
+  hotel-network:
+    driver: bridge
