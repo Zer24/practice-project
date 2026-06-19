@@ -1,7 +1,8 @@
 package org.example.service;
 
 import jakarta.validation.Valid;
-import org.example.domain.Role;
+import lombok.AllArgsConstructor;
+import org.example.domain.enums.Role;
 import org.example.domain.User;
 import org.example.dto.UserCreateDto;
 import org.example.dto.UserResponseDto;
@@ -19,36 +20,24 @@ import java.util.stream.Collectors;
 
 @Service
 @Validated
-@Transactional
+@AllArgsConstructor
 public class UserService {
-
-    @Autowired
     private final UserRepository userRepository;
-    @Autowired
     private final UserMapper userMapper;
-    @Autowired
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
 
-    public UserService(UserRepository userRepository,
-                       UserMapper userMapper,
-                       PasswordEncoder passwordEncoder,
-                       AuditService auditService) {
-        this.userRepository = userRepository;
-        this.userMapper = userMapper;
-        this.passwordEncoder = passwordEncoder;
-        this.auditService = auditService;
-    }
 
+    @Transactional
     public UserResponseDto createUser(@Valid UserCreateDto dto) {
-        if (userRepository.existsByUsernameAndIsDeletedFalse(dto.getUsername())) {
-            throw new RuntimeException("User with username " + dto.getUsername() + " already exists");
+        if (userRepository.existsByUsernameAndIsDeletedFalse(dto.username())) {
+            throw new RuntimeException("User with username " + dto.username() + " already exists");
         }
-        if (userRepository.existsByEmailAndIsDeletedFalse(dto.getEmail())) {
-            throw new RuntimeException("User with email " + dto.getEmail() + " already exists");
+        if (userRepository.existsByEmailAndIsDeletedFalse(dto.email())) {
+            throw new RuntimeException("User with email " + dto.email() + " already exists");
         }
 
-        String hashedPassword = passwordEncoder.encode(dto.getPassword());
+        String hashedPassword = passwordEncoder.encode(dto.password());
 
         User user = userMapper.toEntity(dto);
         user.setPasswordHash(hashedPassword);
@@ -60,6 +49,7 @@ public class UserService {
         return userMapper.toDto(saved);
     }
 
+    @Transactional
     public UserResponseDto updateUser(UUID userId, UserCreateDto request, UUID performedBy) {
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
@@ -71,26 +61,26 @@ public class UserService {
         // Сохраняем старую роль для аудита
         Role oldRole = user.getRole();
 
-        if (request.getUsername() != null && !request.getUsername().equals(user.getUsername())) {
-            if (userRepository.existsByUsernameAndIsDeletedFalse(request.getUsername())) {
+        if (request.username() != null && !request.username().equals(user.getUsername())) {
+            if (userRepository.existsByUsernameAndIsDeletedFalse(request.username())) {
                 throw new RuntimeException("Username already taken");
             }
-            user.setUsername(request.getUsername());
+            user.setUsername(request.username());
         }
 
-        if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
-            if (userRepository.existsByEmailAndIsDeletedFalse(request.getEmail())) {
+        if (request.email() != null && !request.email().equals(user.getEmail())) {
+            if (userRepository.existsByEmailAndIsDeletedFalse(request.email())) {
                 throw new RuntimeException("Email already taken");
             }
-            user.setEmail(request.getEmail());
+            user.setEmail(request.email());
         }
 
-        if (request.getPassword() != null) {
-            user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        if (request.password() != null) {
+            user.setPasswordHash(passwordEncoder.encode(request.password()));
         }
 
-        if (request.getRole() != null) {
-            user.setRole(request.getRole());
+        if (request.role() != null) {
+            user.setRole(request.role());
         }
 
         User updatedUser = userRepository.save(user);
@@ -108,6 +98,7 @@ public class UserService {
         return new UserResponseDto(updatedUser);
     }
 
+    @Transactional
     public void softDeleteUser(UUID userId, UUID performedBy) {
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
@@ -118,6 +109,7 @@ public class UserService {
         auditService.logUserDelete(userId, user.getUsername(), performedBy != null ? performedBy : userId, true);
     }
 
+    @Transactional
     public void restoreUser(UUID userId, UUID performedBy) {
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
@@ -128,6 +120,7 @@ public class UserService {
         auditService.logUserDelete(userId, user.getUsername(), performedBy != null ? performedBy : userId, false);
     }
 
+    @Transactional
     public void hardDeleteUser(UUID userId) {
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
@@ -142,6 +135,7 @@ public class UserService {
         return userRepository.existsByEmailAndIsDeletedFalse(email);
     }
 
+    @Transactional
     public UserResponseDto authenticate(String username, String password) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));

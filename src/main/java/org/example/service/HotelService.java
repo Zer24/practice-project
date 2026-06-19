@@ -1,5 +1,6 @@
 package org.example.service;
 
+import lombok.AllArgsConstructor;
 import org.example.domain.Hotel;
 import org.example.dto.HotelCreateDto;
 import org.example.dto.HotelResponseDto;
@@ -17,21 +18,14 @@ import java.util.stream.Collectors;
 
 @Service
 @Validated
-@Transactional
+@AllArgsConstructor
 public class HotelService {
 
     private final HotelRepository hotelRepository;
     private final HotelMapper hotelMapper;
     private final AuditService auditService;
 
-    public HotelService(HotelRepository hotelRepository,
-                        HotelMapper hotelMapper,
-                        AuditService auditService) {
-        this.hotelRepository = hotelRepository;
-        this.hotelMapper = hotelMapper;
-        this.auditService = auditService;
-    }
-
+    @Transactional
     public HotelResponseDto createHotel(@Valid HotelCreateDto dto) {
         Hotel hotel = hotelMapper.toEntity(dto);
         Hotel saved = hotelRepository.save(hotel);
@@ -56,6 +50,7 @@ public class HotelService {
         return new HotelResponseDto(hotel);
     }
 
+    @Transactional
     public HotelResponseDto updateHotel(UUID hotelId, @Valid HotelUpdateDto dto) {
         Hotel hotel = hotelRepository.findByHotelId(hotelId)
                 .orElseThrow(() -> new RuntimeException("Hotel not found with id: " + hotelId));
@@ -63,28 +58,29 @@ public class HotelService {
         if (hotel.isDeleted()) {
             throw new RuntimeException("Cannot update deleted hotel");
         }
-        if (dto.getName() != null && !dto.getName().isEmpty()) {
-            hotel.setName(dto.getName());
+        if (dto.name() != null && !dto.name().isEmpty()) {
+            hotel.setName(dto.name());
         }
-        if (dto.getCity() != null && !dto.getCity().isEmpty()) {
-            hotel.setCity(dto.getCity());
+        if (dto.city() != null && !dto.city().isEmpty()) {
+            hotel.setCity(dto.city());
         }
-        if (dto.getCountry() != null && !dto.getCountry().isEmpty()) {
-            hotel.setCountry(dto.getCountry());
+        if (dto.country() != null && !dto.country().isEmpty()) {
+            hotel.setCountry(dto.country());
         }
-        if (dto.getAddress() != null && !dto.getAddress().isEmpty()) {
-            hotel.setAddress(dto.getAddress());
+        if (dto.address() != null && !dto.address().isEmpty()) {
+            hotel.setAddress(dto.address());
         }
-        if (dto.getManagerId() != null) {
-            hotel.setManagerId(dto.getManagerId());
+        if (dto.managerId() != null) {
+            hotel.setManagerId(dto.managerId());
         }
-        if (dto.getRating() != null) {
-            hotel.setRating(dto.getRating());
+        if (dto.rating() != null) {
+            hotel.setRating(dto.rating());
         }
         Hotel updated = hotelRepository.save(hotel);
         return new HotelResponseDto(updated);
     }
 
+    @Transactional
     public void softDeleteHotel(UUID hotelId, UUID performedBy) {
         Hotel hotel = hotelRepository.findByHotelId(hotelId)
                 .orElseThrow(() -> new RuntimeException("Hotel not found with id: " + hotelId));
@@ -95,6 +91,7 @@ public class HotelService {
         auditService.logHotelDelete(hotelId, hotel.getName(), performedBy, true);
     }
 
+    @Transactional
     public void restoreHotel(UUID hotelId, UUID performedBy) {
         Hotel hotel = hotelRepository.findByHotelId(hotelId)
                 .orElseThrow(() -> new RuntimeException("Hotel not found with id: " + hotelId));
@@ -105,6 +102,7 @@ public class HotelService {
         auditService.logHotelDelete(hotelId, hotel.getName(), performedBy, false);
     }
 
+    @Transactional
     public void hardDeleteHotel(UUID hotelId) {
         Hotel hotel = hotelRepository.findByHotelId(hotelId)
                 .orElseThrow(() -> new RuntimeException("Hotel not found with id: " + hotelId));

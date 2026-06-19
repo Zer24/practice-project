@@ -2,35 +2,96 @@ spring:
   profiles:
     active: local  # по умолчанию local
 ---
-# Локальный профиль (без Docker)
 spring:
   config:
     activate:
       on-profile: local
   data:
     mongodb:
-      database: hotel_booking_db
-      host: localhost
-      port: 27017
-      username: hotel_admin
-      password: hotel_password_123
-      authentication-database: hotel_booking_db
+      database: ${MONGODB_DATABASE:hotel_booking_db}
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      username: ${MONGODB_USERNAME}
+      password: ${MONGODB_PASSWORD}
+      authentication-database: ${MONGODB_AUTH_DATABASE:hotel_booking_db}
 ---
-# Docker профиль
 spring:
   config:
     activate:
       on-profile: docker
   data:
     mongodb:
-      database: hotel_booking_db
-      host: mongodb  # имя сервиса в docker-compose
-      port: 27017
-      username: hotel_admin
-      password: hotel_password_123
-      authentication-database: hotel_booking_db
+      database: ${MONGODB_DATABASE:hotel_booking_db}
+      host: ${MONGODB_HOST:mongodb}
+      port: ${MONGODB_PORT:27017}
+      username: ${MONGODB_USERNAME}
+      password: ${MONGODB_PASSWORD}
+      authentication-database: ${MONGODB_AUTH_DATABASE:hotel_booking_db}
 
 app:
   security:
     bcrypt:
-      strength: 10
+      strength: ${BCRYPT_STRENGTH:10}
+
+business:
+  loyalty:
+    tiers:
+      platinum: 10000
+      gold: 5000
+      silver: 1000
+      bronze: 0
+    points-per-100-dollars: 1
+    min-points-for-discount:
+      bronze: 100
+      silver: 500
+      gold: 1000
+      platinum: 5000
+    base-discount-rates:
+      bronze: 0.05
+      silver: 0.10
+      gold: 0.15
+      platinum: 0.20
+    max-discount-rates:
+      bronze: 0.05
+      silver: 0.20
+      gold: 0.30
+      platinum: 0.40
+    bonus-multipliers:
+      silver: 10000
+      gold: 5000
+      platinum: 2000
+    max-bonus:
+      silver: 0.05
+      gold: 0.10
+      platinum: 0.15
+  booking:
+    default-status: CREATED
+    min-booking-days: 1
+    max-booking-days: 30
+    max-bookings-per-user: 10
+    free-cancellation-days: 3
+  room:
+    min-price-per-night: 10.0
+    max-price-per-night: 10000.0
+    default-capacity:
+      SINGLE: 1
+      DOUBLE: 2
+      SUITE: 4
+      DELUXE: 2
+    min-area:
+      SINGLE: 10.0
+      DOUBLE: 15.0
+      SUITE: 30.0
+      DELUXE: 25.0
+
+  user:
+    default-admin-password: 1234
+    default-admin-username: admin
+    default-admin-email: admin@admin.com
+    min-password-length: 4
+    max-password-length: 100
+    default-role: CUSTOMER
+  hotel:
+    max-hotels-per-manager: 10
+    default-rating: 0.0
+    max-rating: 5.0

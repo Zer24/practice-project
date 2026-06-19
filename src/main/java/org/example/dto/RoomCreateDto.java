@@ -1,41 +1,35 @@
+// RoomCreateDto.java
 package org.example.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.example.domain.RoomType;
+import org.example.domain.enums.RoomType;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class RoomCreateDto {
+public record RoomCreateDto(
+        @NotNull(message = "Hotel ID is required")
+        UUID hotelId,
 
-    @NotNull(message = "Hotel ID is required")
-    private UUID hotelId;
+        @NotNull(message = "Room type is required")
+        RoomType roomType,
 
-    @NotNull(message = "Room type is required")
-    private RoomType roomType;
+        @NotNull(message = "Price per night is required")
+        @Min(value = 0, message = "Price must be positive")
+        BigDecimal pricePerNight,
 
-    @NotNull(message = "Price per night is required")
-    @Min(value = 0, message = "Price must be positive")
-    private BigDecimal pricePerNight;
+        @NotNull(message = "Capacity is required")
+        @Min(value = 1, message = "Capacity must be at least 1")
+        Integer capacity,
 
-    @NotNull(message = "Capacity is required")
-    @Min(value = 1, message = "Capacity must be at least 1")
-    private Integer capacity;
+        @NotBlank(message = "Description is required")
+        String description,
 
-    @NotBlank(message = "Description is required")
-    private String description;
+        List<String> amenities,
 
-    private List<String> amenities;
-
-    @Min(value = 0, message = "Area must be positive")
-    private Double area;
-}
+        @Min(value = 0, message = "Area must be positive")
+        Double area
+) {}

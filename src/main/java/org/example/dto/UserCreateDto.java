@@ -1,27 +1,23 @@
+// UserCreateDto.java
 package org.example.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.example.domain.Role;
+import org.example.domain.enums.Role;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class UserCreateDto {
+public record UserCreateDto(
+        @NotBlank(message = "Username is required")
+        @Size(min = 3, max = 50, message = "Username must be 3-50 characters")
+        String username,
 
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be 3-50 characters")
-    private String username;
+        @NotBlank(message = "Email is required")
+        @Email
+        String email,
 
-    @NotBlank(message = "Email is required") @Email
-    private String email;
+        @NotBlank(message = "Password is required")
+        @Size(min = 4, message = "Password min 4 chars")
+        String password,
 
-    @NotBlank(message = "Email is required") @Size(min = 4, message = "Password min 4 chars")
-    private String password;
-
-    private Role role;
-}
+        Role role
+) {}

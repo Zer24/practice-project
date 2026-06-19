@@ -2,7 +2,7 @@ package org.example.repository;
 
 import org.example.domain.Booking;
 import org.bson.types.ObjectId;
-import org.example.domain.BookingStatus;
+import org.example.domain.enums.BookingStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;

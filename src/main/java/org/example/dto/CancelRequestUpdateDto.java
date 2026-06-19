@@ -1,16 +1,11 @@
+// CancelRequestUpdateDto.java
 package org.example.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.example.domain.CancelRequestStatus;
+import org.example.domain.enums.CancelRequestStatus;
 
 import java.util.UUID;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class CancelRequestUpdateDto {
-    private CancelRequestStatus status;
-    private UUID processedBy;
-}
+public record CancelRequestUpdateDto(
+        CancelRequestStatus status,
+        UUID processedBy
+) {}

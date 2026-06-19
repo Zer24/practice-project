@@ -1,26 +1,20 @@
+// LoyaltyProgramCreateDto.java
 package org.example.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.example.domain.LoyaltyTier;
+import org.example.domain.enums.LoyaltyTier;
 
 import java.util.UUID;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class LoyaltyProgramCreateDto {
+public record LoyaltyProgramCreateDto(
+        @NotNull(message = "User ID is required")
+        UUID userId,
 
-    @NotNull(message = "User ID is required")
-    private UUID userId;
+        @NotNull(message = "Total points is required")
+        @Min(value = 0, message = "Points cannot be negative")
+        Integer totalPoints,
 
-    @NotNull(message = "Total points is required")
-    @Min(value = 0, message = "Points cannot be negative")
-    private Integer totalPoints;
-
-    @NotNull(message = "Tier is required")
-    private LoyaltyTier tier;
-}
+        @NotNull(message = "Tier is required")
+        LoyaltyTier tier
+) {}

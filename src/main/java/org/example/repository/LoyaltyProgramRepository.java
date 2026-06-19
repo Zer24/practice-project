@@ -2,9 +2,8 @@ package org.example.repository;
 
 import org.example.domain.LoyaltyProgram;
 import org.bson.types.ObjectId;
-import org.example.domain.LoyaltyTier;
+import org.example.domain.enums.LoyaltyTier;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;

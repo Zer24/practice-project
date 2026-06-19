@@ -1,15 +1,17 @@
 package org.example.mapper;
 
+import java.math.BigDecimal;
+import java.util.UUID;
 import javax.annotation.processing.Generated;
 import org.example.domain.LoyaltyProgram;
+import org.example.domain.enums.LoyaltyTier;
 import org.example.dto.LoyaltyProgramCreateDto;
 import org.example.dto.LoyaltyProgramResponseDto;
-import org.example.dto.LoyaltyProgramUpdateDto;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-06-18T14:17:21+0300",
+    date = "2026-06-19T23:11:03+0300",
     comments = "version: 1.6.3, compiler: javac, environment: Java 17.0.12 (Oracle Corporation)"
 )
 @Component
@@ -21,13 +23,19 @@ public class LoyaltyProgramMapperImpl implements LoyaltyProgramMapper {
             return null;
         }
 
-        LoyaltyProgramResponseDto loyaltyProgramResponseDto = new LoyaltyProgramResponseDto();
+        UUID loyaltyId = null;
+        UUID userId = null;
+        Integer totalPoints = null;
+        LoyaltyTier tier = null;
+        BigDecimal totalSpent = null;
 
-        loyaltyProgramResponseDto.setLoyaltyId( loyaltyProgram.getLoyaltyId() );
-        loyaltyProgramResponseDto.setUserId( loyaltyProgram.getUserId() );
-        loyaltyProgramResponseDto.setTotalPoints( loyaltyProgram.getTotalPoints() );
-        loyaltyProgramResponseDto.setTier( loyaltyProgram.getTier() );
-        loyaltyProgramResponseDto.setTotalSpent( loyaltyProgram.getTotalSpent() );
+        loyaltyId = loyaltyProgram.getLoyaltyId();
+        userId = loyaltyProgram.getUserId();
+        totalPoints = loyaltyProgram.getTotalPoints();
+        tier = loyaltyProgram.getTier();
+        totalSpent = loyaltyProgram.getTotalSpent();
+
+        LoyaltyProgramResponseDto loyaltyProgramResponseDto = new LoyaltyProgramResponseDto( loyaltyId, userId, totalPoints, tier, totalSpent );
 
         return loyaltyProgramResponseDto;
     }
@@ -40,25 +48,12 @@ public class LoyaltyProgramMapperImpl implements LoyaltyProgramMapper {
 
         LoyaltyProgram loyaltyProgram = new LoyaltyProgram();
 
-        loyaltyProgram.setUserId( dto.getUserId() );
-        loyaltyProgram.setTotalPoints( dto.getTotalPoints() );
-        loyaltyProgram.setTier( dto.getTier() );
+        loyaltyProgram.setUserId( dto.userId() );
+        loyaltyProgram.setTotalPoints( dto.totalPoints() );
+        loyaltyProgram.setTier( dto.tier() );
 
         generateLoyaltyId( loyaltyProgram );
 
         return loyaltyProgram;
-    }
-
-    @Override
-    public void updateEntity(LoyaltyProgram loyaltyProgram, LoyaltyProgramUpdateDto dto) {
-        if ( dto == null ) {
-            return;
-        }
-
-        loyaltyProgram.setTotalPoints( dto.getTotalPoints() );
-        loyaltyProgram.setTier( dto.getTier() );
-        loyaltyProgram.setTotalSpent( dto.getTotalSpent() );
-
-        generateLoyaltyId( loyaltyProgram );
     }
 }

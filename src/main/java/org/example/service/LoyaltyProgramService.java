@@ -1,7 +1,9 @@
 package org.example.service;
 
+import lombok.AllArgsConstructor;
+import org.example.config.BusinessProperties;
 import org.example.domain.LoyaltyProgram;
-import org.example.domain.LoyaltyTier;
+import org.example.domain.enums.LoyaltyTier;
 import org.example.dto.LoyaltyProgramCreateDto;
 import org.example.dto.LoyaltyProgramResponseDto;
 import org.example.dto.LoyaltyProgramUpdateDto;
@@ -14,25 +16,23 @@ import jakarta.validation.Valid;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @Validated
-@Transactional
+@AllArgsConstructor
 public class LoyaltyProgramService {
 
     private final LoyaltyProgramRepository loyaltyProgramRepository;
     private final LoyaltyProgramMapper loyaltyProgramMapper;
+    private final BusinessProperties properties;
 
-    public LoyaltyProgramService(LoyaltyProgramRepository loyaltyProgramRepository,
-                                 LoyaltyProgramMapper loyaltyProgramMapper) {
-        this.loyaltyProgramRepository = loyaltyProgramRepository;
-        this.loyaltyProgramMapper = loyaltyProgramMapper;
-    }
+    @Transactional
     public LoyaltyProgramResponseDto createLoyaltyProgram(@Valid LoyaltyProgramCreateDto dto) {
-        if (loyaltyProgramRepository.existsByUserId(dto.getUserId())) {
-            throw new RuntimeException("Loyalty program already exists for user: " + dto.getUserId());
+        if (loyaltyProgramRepository.existsByUserId(dto.userId())) {
+            throw new RuntimeException("Loyalty program already exists for user: " + dto.userId());
         }
 
         LoyaltyProgram loyaltyProgram = loyaltyProgramMapper.toEntity(dto);
@@ -59,28 +59,32 @@ public class LoyaltyProgramService {
 
         return loyaltyProgramMapper.toDto(loyaltyProgram);
     }
+
+    @Transactional
     public LoyaltyProgramResponseDto updateLoyaltyProgram(UUID loyaltyId, @Valid LoyaltyProgramUpdateDto dto) {
         LoyaltyProgram loyaltyProgram = loyaltyProgramRepository.findByLoyaltyId(loyaltyId)
                 .orElseThrow(() -> new RuntimeException("Loyalty program not found with id: " + loyaltyId));
 
         // Обновляем только те поля, которые были переданы
-        if (dto.getTotalPoints() != null) {
-            loyaltyProgram.setTotalPoints(dto.getTotalPoints());
+        if (dto.totalPoints() != null) {
+            loyaltyProgram.setTotalPoints(dto.totalPoints());
             // Если изменились баллы, обновляем уровень
             updateTierByPoints(loyaltyProgram);
         }
 
-        if (dto.getTier() != null) {
-            loyaltyProgram.setTier(dto.getTier());
+        if (dto.tier() != null) {
+            loyaltyProgram.setTier(dto.tier());
         }
 
-        if (dto.getTotalSpent() != null) {
-            loyaltyProgram.setTotalSpent(dto.getTotalSpent());
+        if (dto.totalSpent() != null) {
+            loyaltyProgram.setTotalSpent(dto.totalSpent());
         }
 
         LoyaltyProgram updated = loyaltyProgramRepository.save(loyaltyProgram);
         return loyaltyProgramMapper.toDto(updated);
     }
+
+    @Transactional
     public LoyaltyProgramResponseDto addPoints(UUID userId, Integer points) {
         LoyaltyProgram loyaltyProgram = loyaltyProgramRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Loyalty program not found for user: " + userId));
@@ -93,6 +97,22 @@ public class LoyaltyProgramService {
         LoyaltyProgram updated = loyaltyProgramRepository.save(loyaltyProgram);
         return loyaltyProgramMapper.toDto(updated);
     }
+    private void updateTierByPoints(LoyaltyProgram loyaltyProgram) {
+        int points = loyaltyProgram.getTotalPoints();
+        Map<String, Integer> tiers = properties.getLoyalty().getTiers();
+
+        if (points >= tiers.get("platinum")) {
+            loyaltyProgram.setTier(LoyaltyTier.PLATINUM);
+        } else if (points >= tiers.get("gold")) {
+            loyaltyProgram.setTier(LoyaltyTier.GOLD);
+        } else if (points >= tiers.get("silver")) {
+            loyaltyProgram.setTier(LoyaltyTier.SILVER);
+        } else {
+            loyaltyProgram.setTier(LoyaltyTier.BRONZE);
+        }
+    }
+
+    @Transactional
     public LoyaltyProgramResponseDto addSpentAmount(UUID userId, BigDecimal amount) {
         LoyaltyProgram loyaltyProgram = loyaltyProgramRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Loyalty program not found for user: " + userId));
@@ -100,7 +120,10 @@ public class LoyaltyProgramService {
         BigDecimal newTotalSpent = loyaltyProgram.getTotalSpent().add(amount);
         loyaltyProgram.setTotalSpent(newTotalSpent);
 
-        int pointsToAdd = amount.divide(BigDecimal.valueOf(100)).intValue();
+        // Используем конфигурируемый курс
+        int pointsPerHundred = properties.getLoyalty().getPointsPer100Dollars();
+        int pointsToAdd = amount.divide(BigDecimal.valueOf(100)).intValue() * pointsPerHundred;
+
         if (pointsToAdd > 0) {
             loyaltyProgram.setTotalPoints(loyaltyProgram.getTotalPoints() + pointsToAdd);
             updateTierByPoints(loyaltyProgram);
@@ -109,25 +132,14 @@ public class LoyaltyProgramService {
         LoyaltyProgram updated = loyaltyProgramRepository.save(loyaltyProgram);
         return loyaltyProgramMapper.toDto(updated);
     }
-    private void updateTierByPoints(LoyaltyProgram loyaltyProgram) {
-        int points = loyaltyProgram.getTotalPoints();
-
-        if (points >= 10000) {
-            loyaltyProgram.setTier(LoyaltyTier.PLATINUM);
-        } else if (points >= 5000) {
-            loyaltyProgram.setTier(LoyaltyTier.GOLD);
-        } else if (points >= 1000) {
-            loyaltyProgram.setTier(LoyaltyTier.SILVER);
-        } else {
-            loyaltyProgram.setTier(LoyaltyTier.BRONZE);
-        }
-    }
     public List<LoyaltyProgramResponseDto> getLoyaltyProgramsByTier(LoyaltyTier tier) {
         return loyaltyProgramRepository.findByTier(tier)
                 .stream()
                 .map(loyaltyProgramMapper::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Transactional
     public LoyaltyProgramResponseDto redeemPoints(UUID userId, Integer pointsToRedeem) {
         LoyaltyProgram loyaltyProgram = loyaltyProgramRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Loyalty program not found for user: " + userId));
@@ -144,6 +156,8 @@ public class LoyaltyProgramService {
         LoyaltyProgram updated = loyaltyProgramRepository.save(loyaltyProgram);
         return loyaltyProgramMapper.toDto(updated);
     }
+
+    @Transactional
     public void deleteLoyaltyProgram(UUID loyaltyId) {
         LoyaltyProgram loyaltyProgram = loyaltyProgramRepository.findByLoyaltyId(loyaltyId)
                 .orElseThrow(() -> new RuntimeException("Loyalty program not found with id: " + loyaltyId));

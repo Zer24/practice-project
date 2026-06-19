@@ -1,7 +1,8 @@
 package org.example.service;
 
+import lombok.AllArgsConstructor;
 import org.example.domain.Booking;
-import org.example.domain.BookingStatus;
+import org.example.domain.enums.BookingStatus;
 import org.example.domain.LoyaltyProgram;
 import org.example.domain.Room;
 import org.example.dto.BookingCreateDto;
@@ -11,7 +12,7 @@ import org.example.mapper.BookingMapper;
 import org.example.repository.BookingRepository;
 import org.example.repository.LoyaltyProgramRepository;
 import org.example.repository.RoomRepository;
-import org.example.domain.DiscountContext;
+import org.example.domain.discountStrategy.DiscountContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -26,7 +27,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Validated
-@Transactional
+@AllArgsConstructor
 public class BookingService {
 
     private final BookingRepository bookingRepository;
@@ -35,48 +36,38 @@ public class BookingService {
     private final LoyaltyProgramRepository loyaltyProgramRepository;
     private final DiscountContext discountContext;
 
-    public BookingService(BookingRepository bookingRepository,
-                          BookingMapper bookingMapper,
-                          RoomRepository roomRepository,
-                          LoyaltyProgramRepository loyaltyProgramRepository,
-                          DiscountContext discountContext) {
-        this.bookingRepository = bookingRepository;
-        this.bookingMapper = bookingMapper;
-        this.roomRepository = roomRepository;
-        this.loyaltyProgramRepository = loyaltyProgramRepository;
-        this.discountContext = discountContext;
-    }
-
+    @Transactional
     public BookingResponseDto createBooking(@Valid BookingCreateDto dto) {
-        Room room = roomRepository.findByRoomId(dto.getRoomId())
-                .orElseThrow(() -> new RuntimeException("Room not found with id: " + dto.getRoomId()));
+        Room room = roomRepository.findByRoomId(dto.roomId())
+                .orElseThrow(() -> new RuntimeException("Room not found with id: " + dto.roomId()));
 
         if (room.isDeleted()) {
             throw new RuntimeException("Room is deleted");
         }
 
-        if (dto.getCheckOutDate().isBefore(dto.getCheckInDate())) {
+        if (dto.checkOutDate().isBefore(dto.checkInDate())) {
             throw new RuntimeException("Check-out date must be after check-in date");
         }
 
         List<Booking> conflicting = bookingRepository.findConflictingBookings(
-                dto.getRoomId(), dto.getCheckInDate(), dto.getCheckOutDate());
+                dto.roomId(), dto.checkInDate(), dto.checkOutDate());
 
         if (!conflicting.isEmpty()) {
             throw new RuntimeException("Room is already booked for these dates");
         }
 
-        long nights = ChronoUnit.DAYS.between(dto.getCheckInDate(), dto.getCheckOutDate());
+        long nights = ChronoUnit.DAYS.between(dto.checkInDate(), dto.checkOutDate());
         BigDecimal totalPrice = room.getPricePerNight().multiply(BigDecimal.valueOf(nights));
-        BigDecimal discountedPrice = applyLoyaltyDiscount(dto.getUserId(), totalPrice);
+        BigDecimal discountedPrice = applyLoyaltyDiscount(dto.userId(), totalPrice);
         Booking booking = bookingMapper.toEntity(dto);
         booking.setTotalPrice(discountedPrice);
         Booking saved = bookingRepository.save(booking);
-        updateLoyaltyProgram(dto.getUserId(), discountedPrice);
+        updateLoyaltyProgram(dto.userId(), discountedPrice);
 
         return bookingMapper.toDto(saved);
     }
 
+    @Transactional
     private BigDecimal applyLoyaltyDiscount(UUID userId, BigDecimal totalPrice) {
         try {
             LoyaltyProgram loyaltyProgram = loyaltyProgramRepository.findByUserId(userId)
@@ -99,6 +90,7 @@ public class BookingService {
         }
     }
 
+    @Transactional
     private void updateLoyaltyProgram(UUID userId, BigDecimal spentAmount) {
         try {
             LoyaltyProgram loyaltyProgram = loyaltyProgramRepository.findByUserId(userId)
@@ -136,6 +128,7 @@ public class BookingService {
         return bookingMapper.toDto(booking);
     }
 
+    @Transactional
     public BookingResponseDto updateBooking(UUID bookingId, @Valid BookingUpdateDto dto) {
         Booking booking = bookingRepository.findByBookingId(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
@@ -145,20 +138,20 @@ public class BookingService {
         }
 
         // Обновляем только те поля, которые были переданы
-        if (dto.getCheckInDate() != null) {
-            booking.setCheckInDate(dto.getCheckInDate());
+        if (dto.checkInDate() != null) {
+            booking.setCheckInDate(dto.checkInDate());
         }
 
-        if (dto.getCheckOutDate() != null) {
-            booking.setCheckOutDate(dto.getCheckOutDate());
+        if (dto.checkOutDate() != null) {
+            booking.setCheckOutDate(dto.checkOutDate());
         }
 
-        if (dto.getStatus() != null) {
-            booking.setStatus(dto.getStatus());
+        if (dto.status() != null) {
+            booking.setStatus(dto.status());
         }
 
         // Если изменились даты, пересчитываем цену
-        if (dto.getCheckInDate() != null || dto.getCheckOutDate() != null) {
+        if (dto.checkInDate() != null || dto.checkOutDate() != null) {
             Room room = roomRepository.findByRoomId(booking.getRoomId())
                     .orElseThrow(() -> new RuntimeException("Room not found"));
 
@@ -179,6 +172,7 @@ public class BookingService {
         return bookingMapper.toDto(updated);
     }
 
+    @Transactional
     public void cancelBooking(UUID bookingId) {
         Booking booking = bookingRepository.findByBookingId(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
@@ -191,6 +185,7 @@ public class BookingService {
         bookingRepository.save(booking);
     }
 
+    @Transactional
     public void confirmBooking(UUID bookingId) {
         Booking booking = bookingRepository.findByBookingId(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
@@ -203,6 +198,7 @@ public class BookingService {
         bookingRepository.save(booking);
     }
 
+    @Transactional
     public void softDeleteBooking(UUID bookingId) {
         Booking booking = bookingRepository.findByBookingId(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));

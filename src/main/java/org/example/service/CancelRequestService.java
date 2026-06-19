@@ -1,9 +1,10 @@
 package org.example.service;
 
+import lombok.AllArgsConstructor;
 import org.example.domain.Booking;
-import org.example.domain.BookingStatus;
+import org.example.domain.enums.BookingStatus;
 import org.example.domain.CancelRequest;
-import org.example.domain.CancelRequestStatus;
+import org.example.domain.enums.CancelRequestStatus;
 import org.example.dto.CancelRequestCreateDto;
 import org.example.dto.CancelRequestDto;
 import org.example.dto.CancelRequestUpdateDto;
@@ -21,19 +22,15 @@ import java.util.stream.Collectors;
 
 @Service
 @Validated
-@Transactional
+@AllArgsConstructor
 public class CancelRequestService {
 
     private final CancelRequestRepository cancelRequestRepository;
     private final BookingRepository bookingRepository;
 
-    public CancelRequestService(CancelRequestRepository cancelRequestRepository,
-                                BookingRepository bookingRepository) {
-        this.cancelRequestRepository = cancelRequestRepository;
-        this.bookingRepository = bookingRepository;
-    }
+    @Transactional
     public CancelRequestDto createCancelRequest(@Valid CancelRequestCreateDto dto, UUID userId) {
-        Booking booking = bookingRepository.findByBookingId(dto.getBookingId())
+        Booking booking = bookingRepository.findByBookingId(dto.bookingId())
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
         if (booking.isDeleted()) {
@@ -45,11 +42,11 @@ public class CancelRequestService {
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new RuntimeException("Booking is already cancelled");
         }
-        if (cancelRequestRepository.existsByBookingIdAndStatus(dto.getBookingId(), CancelRequestStatus.PENDING)) {
+        if (cancelRequestRepository.existsByBookingIdAndStatus(dto.bookingId(), CancelRequestStatus.PENDING)) {
             throw new RuntimeException("A cancellation request is already pending for this booking");
         }
 
-        CancelRequest cancelRequest = new CancelRequest(dto.getBookingId(), userId, dto.getReason());
+        CancelRequest cancelRequest = new CancelRequest(dto.bookingId(), userId, dto.reason());
         CancelRequest saved = cancelRequestRepository.save(cancelRequest);
 
         return convertToDto(saved);
@@ -77,6 +74,8 @@ public class CancelRequestService {
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
+
+    @Transactional
     public CancelRequestDto processCancelRequest(UUID requestId, @Valid CancelRequestUpdateDto dto) {
         CancelRequest cancelRequest = cancelRequestRepository.findByRequestId(requestId)
                 .orElseThrow(() -> new RuntimeException("Cancel request not found"));
@@ -84,13 +83,13 @@ public class CancelRequestService {
         if (cancelRequest.getStatus() != CancelRequestStatus.PENDING) {
             throw new RuntimeException("Request has already been processed");
         }
-        cancelRequest.setStatus(dto.getStatus());
-        cancelRequest.setProcessedBy(dto.getProcessedBy());
+        cancelRequest.setStatus(dto.status());
+        cancelRequest.setProcessedBy(dto.processedBy());
         cancelRequest.setProcessedAt(LocalDateTime.now());
         cancelRequestRepository.save(cancelRequest);
 
         // Если запрос одобрен, отменяем бронирование
-        if (dto.getStatus() == CancelRequestStatus.APPROVED) {
+        if (dto.status() == CancelRequestStatus.APPROVED) {
             Booking booking = bookingRepository.findByBookingId(cancelRequest.getBookingId())
                     .orElseThrow(() -> new RuntimeException("Booking not found"));
             booking.setStatus(BookingStatus.CANCELLED);

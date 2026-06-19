@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
+import org.example.domain.enums.RoomType;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
@@ -21,7 +22,7 @@ public class Room {
     private String id;
 
     @BsonProperty("roomId")
-    private UUID roomId;
+    private UUID roomId = UUID.randomUUID();
 
     @BsonProperty("hotelId")
     private UUID hotelId;
@@ -46,16 +47,4 @@ public class Room {
 
     @BsonProperty("isDeleted")
     private boolean isDeleted;
-    public Room(UUID hotelId, RoomType roomType, BigDecimal pricePerNight,
-                int capacity, String description, List<String> amenities, double area) {
-        this.roomId = UUID.randomUUID();
-        this.hotelId = hotelId;
-        this.roomType = roomType;
-        this.pricePerNight = pricePerNight;
-        this.capacity = capacity;
-        this.description = description;
-        this.amenities = amenities;
-        this.area = area;
-        this.isDeleted = false;
-    }
 }

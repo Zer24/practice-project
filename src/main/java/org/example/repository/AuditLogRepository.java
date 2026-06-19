@@ -1,6 +1,6 @@
 package org.example.repository;
 
-import org.example.domain.AuditAction;
+import org.example.domain.enums.AuditAction;
 import org.example.domain.AuditLog;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;

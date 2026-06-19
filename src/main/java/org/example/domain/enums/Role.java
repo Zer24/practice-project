@@ -1,4 +1,4 @@
-package org.example.domain;
+package org.example.domain.enums;
 
 public enum Role {
     ADMIN,

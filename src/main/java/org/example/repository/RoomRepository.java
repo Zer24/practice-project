@@ -2,7 +2,7 @@ package org.example.repository;
 
 import org.example.domain.Room;
 import org.bson.types.ObjectId;
-import org.example.domain.RoomType;
+import org.example.domain.enums.RoomType;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;

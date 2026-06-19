@@ -1,6 +1,9 @@
 package org.example.presentation;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.domain.*;
+import org.example.domain.enums.*;
 import org.example.dto.*;
 import org.example.service.*;
 import org.springframework.boot.CommandLineRunner;
@@ -17,6 +20,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class ConsoleRunner implements CommandLineRunner {
 
     private final UserService userService;
@@ -26,36 +31,17 @@ public class ConsoleRunner implements CommandLineRunner {
     private final LoyaltyProgramService loyaltyProgramService;
     private final CancelRequestService cancelRequestService;
     private final AuditService auditService;
+    private final ConsoleScanner scanner;
 
     private UserResponseDto currentUser;
-    private Scanner scanner;
     private DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-
-    public ConsoleRunner(UserService userService,
-                         HotelService hotelService,
-                         RoomService roomService,
-                         BookingService bookingService,
-                         LoyaltyProgramService loyaltyProgramService,
-                         CancelRequestService cancelRequestService,
-                         AuditService auditService) {
-        this.userService = userService;
-        this.hotelService = hotelService;
-        this.roomService = roomService;
-        this.bookingService = bookingService;
-        this.loyaltyProgramService = loyaltyProgramService;
-        this.cancelRequestService = cancelRequestService;
-        this.auditService = auditService;
-    }
 
     @Override
     public void run(String... args) {
         initAdminUser();
-        scanner = new Scanner(System.in);
         System.out.println("═══════════════════════════════════════");
         System.out.println("     ДОБРО ПОЖАЛОВАТЬ В HOTEL BOOKING SYSTEM");
         System.out.println("═══════════════════════════════════════");
-
-        System.out.println("[DEBUG] ad");
 
         while (currentUser == null) {
             try {
@@ -65,10 +51,10 @@ public class ConsoleRunner implements CommandLineRunner {
             }
         }
 
-        System.out.println("\n✅ Добро пожаловать, " + currentUser.getUsername() + "!");
-        System.out.println("Ваша роль: " + currentUser.getRole());
+        System.out.println("\n✅ Добро пожаловать, " + currentUser.username() + "!");
+        System.out.println("Ваша роль: " + currentUser.role());
 
-        if (currentUser.getRole() == Role.CUSTOMER) {
+        if (currentUser.role() == Role.CUSTOMER) {
             showLoyaltyInfo();
         }
 
@@ -82,8 +68,8 @@ public class ConsoleRunner implements CommandLineRunner {
                     while (currentUser == null) {
                         showAuthMenu();
                     }
-                    System.out.println("\n✅ С возвращением, " + currentUser.getUsername() + "!");
-                    if (currentUser.getRole() == Role.CUSTOMER) {
+                    System.out.println("\n✅ С возвращением, " + currentUser.username() + "!");
+                    if (currentUser.role() == Role.CUSTOMER) {
                         showLoyaltyInfo();
                     }
                 } else if (command.equalsIgnoreCase("exit")) {
@@ -158,14 +144,17 @@ public class ConsoleRunner implements CommandLineRunner {
 
     private void showLoyaltyInfo() {
         try {
-            LoyaltyProgramResponseDto loyalty = loyaltyProgramService.getLoyaltyProgramByUser(currentUser.getUserId());
+            LoyaltyProgramResponseDto loyalty = loyaltyProgramService.getLoyaltyProgramByUser(currentUser.userId());
             System.out.println("\n⭐ ПРОГРАММА ЛОЯЛЬНОСТИ ⭐");
-            System.out.println("   Уровень: " + loyalty.getTier());
-            System.out.println("   Баллов: " + loyalty.getTotalPoints());
-            System.out.println("   Всего потрачено: $" + loyalty.getTotalSpent());
-            System.out.println("   Доступная скидка: " + getDiscountInfo(loyalty.getTier()));
+            System.out.println("   Уровень: " + loyalty.tier());
+            System.out.println("   Баллов: " + loyalty.totalPoints());
+            System.out.println("   Всего потрачено: $" + loyalty.totalSpent());
+            System.out.println("   Доступная скидка: " + getDiscountInfo(loyalty.tier()));
         } catch (RuntimeException e) {
-            // У пользователя еще нет программы лояльности
+            System.out.println("\n⭐ ПРОГРАММА ЛОЯЛЬНОСТИ ⭐");
+            System.out.println("   ❌ Программа лояльности временно недоступна");
+            System.out.println("   Причина: " + e.getMessage());
+            System.out.println("   ⚠️ Обратитесь к администратору для активации программы лояльности.");
         }
     }
 
@@ -180,10 +169,10 @@ public class ConsoleRunner implements CommandLineRunner {
 
     private void showMainMenu() {
         System.out.println("\n═══════════════════════════════════════");
-        System.out.println("ГЛАВНОЕ МЕНЮ [Роль: " + currentUser.getRole() + "]");
+        System.out.println("ГЛАВНОЕ МЕНЮ [Роль: " + currentUser.role() + "]");
         System.out.println("═══════════════════════════════════════");
 
-        switch (currentUser.getRole()) {
+        switch (currentUser.role()) {
             case CUSTOMER -> showCustomerMenu();
             case MANAGER -> showManagerMenu();
             case ADMIN -> showAdminMenu();
@@ -242,7 +231,7 @@ public class ConsoleRunner implements CommandLineRunner {
     }
 
     private void processCommand(String command) {
-        switch (currentUser.getRole()) {
+        switch (currentUser.role()) {
             case CUSTOMER -> processCustomerCommand(command);
             case MANAGER -> processManagerCommand(command);
             case ADMIN -> processAdminCommand(command);
@@ -282,16 +271,16 @@ public class ConsoleRunner implements CommandLineRunner {
 
         try {
             CancelRequestCreateDto dto = new CancelRequestCreateDto(bookingId, reason);
-            CancelRequestDto request = cancelRequestService.createCancelRequest(dto, currentUser.getUserId());
-            System.out.println("✅ Запрос на отмену создан! ID: " + request.getRequestId());
-            System.out.println("   Статус: " + request.getStatus());
+            CancelRequestDto request = cancelRequestService.createCancelRequest(dto, currentUser.userId());
+            System.out.println("✅ Запрос на отмену создан! ID: " + request.requestId());
+            System.out.println("   Статус: " + request.status());
             System.out.println("   Ожидайте подтверждения от менеджера отеля.");
         } catch (RuntimeException e) {
             System.out.println("❌ Ошибка: " + e.getMessage());
         }
     }
     private void showMyCancelRequests() {
-        List<CancelRequestDto> requests = cancelRequestService.getCancelRequestsByUser(currentUser.getUserId());
+        List<CancelRequestDto> requests = cancelRequestService.getCancelRequestsByUser(currentUser.userId());
         if (requests.isEmpty()) {
             System.out.println("У вас нет запросов на отмену.");
             return;
@@ -299,14 +288,14 @@ public class ConsoleRunner implements CommandLineRunner {
 
         System.out.println("\n=== МОИ ЗАПРОСЫ НА ОТМЕНУ ===");
         for (CancelRequestDto request : requests) {
-            System.out.printf("📋 Запрос #%s%n", request.getRequestId());
-            System.out.printf("   Бронирование: %s%n", request.getBookingId());
-            System.out.printf("   Причина: %s%n", request.getReason());
-            System.out.printf("   Статус: %s%n", request.getStatus());
-            System.out.printf("   Создан: %s%n", request.getCreatedAt());
-            if (request.getProcessedAt() != null) {
-                System.out.printf("   Обработан: %s%n", request.getProcessedAt());
-                System.out.printf("   Обработал: %s%n", request.getProcessedBy());
+            System.out.printf("📋 Запрос #%s%n", request.requestId());
+            System.out.printf("   Бронирование: %s%n", request.bookingId());
+            System.out.printf("   Причина: %s%n", request.reason());
+            System.out.printf("   Статус: %s%n", request.status());
+            System.out.printf("   Создан: %s%n", request.createdAt());
+            if (request.processedAt() != null) {
+                System.out.printf("   Обработан: %s%n", request.processedAt());
+                System.out.printf("   Обработал: %s%n", request.processedBy());
             }
             System.out.println("   ---");
         }
@@ -348,10 +337,10 @@ public class ConsoleRunner implements CommandLineRunner {
 
         System.out.println("\n=== ВСЕ ЗАПРОСЫ НА ОТМЕНУ ===");
         for (CancelRequestDto request : requests) {
-            System.out.printf("📋 Запрос #%s [%s]%n", request.getRequestId(), request.getStatus());
-            System.out.printf("   Бронирование: %s%n", request.getBookingId());
-            System.out.printf("   Пользователь: %s%n", request.getUserId());
-            System.out.printf("   Причина: %s%n", request.getReason());
+            System.out.printf("📋 Запрос #%s [%s]%n", request.requestId(), request.status());
+            System.out.printf("   Бронирование: %s%n", request.bookingId());
+            System.out.printf("   Пользователь: %s%n", request.userId());
+            System.out.printf("   Причина: %s%n", request.reason());
             System.out.println("   ---");
         }
     }
@@ -364,11 +353,11 @@ public class ConsoleRunner implements CommandLineRunner {
 
         System.out.println("\n=== ЗАПРОСЫ В ОЖИДАНИИ ===");
         for (CancelRequestDto request : requests) {
-            System.out.printf("📋 Запрос #%s%n", request.getRequestId());
-            System.out.printf("   Бронирование: %s%n", request.getBookingId());
-            System.out.printf("   Пользователь: %s%n", request.getUserId());
-            System.out.printf("   Причина: %s%n", request.getReason());
-            System.out.printf("   Создан: %s%n", request.getCreatedAt());
+            System.out.printf("📋 Запрос #%s%n", request.requestId());
+            System.out.printf("   Бронирование: %s%n", request.bookingId());
+            System.out.printf("   Пользователь: %s%n", request.userId());
+            System.out.printf("   Причина: %s%n", request.reason());
+            System.out.printf("   Создан: %s%n", request.createdAt());
             System.out.println("   ---");
         }
     }
@@ -383,16 +372,16 @@ public class ConsoleRunner implements CommandLineRunner {
         }
         try {
             CancelRequestDto request = cancelRequestService.getCancelRequest(requestId);
-            if (!"PENDING".equals(request.getStatus())) {
-                System.out.println("❌ Запрос уже обработан. Статус: " + request.getStatus());
+            if (!"PENDING".equals(request.status())) {
+                System.out.println("❌ Запрос уже обработан. Статус: " + request.status());
                 return;
             }
 
             System.out.println("\nИнформация о запросе:");
-            System.out.println("   Бронирование: " + request.getBookingId());
-            System.out.println("   Пользователь: " + request.getUserId());
-            System.out.println("   Причина: " + request.getReason());
-            System.out.println("   Создан: " + request.getCreatedAt());
+            System.out.println("   Бронирование: " + request.bookingId());
+            System.out.println("   Пользователь: " + request.userId());
+            System.out.println("   Причина: " + request.reason());
+            System.out.println("   Создан: " + request.createdAt());
 
             System.out.println("\n1. Подтвердить (APPROVED)");
             System.out.println("2. Отклонить (REJECTED)");
@@ -409,10 +398,10 @@ public class ConsoleRunner implements CommandLineRunner {
                 return;
             }
 
-            CancelRequestUpdateDto dto = new CancelRequestUpdateDto(status, currentUser.getUserId());
+            CancelRequestUpdateDto dto = new CancelRequestUpdateDto(status, currentUser.userId());
             CancelRequestDto updated = cancelRequestService.processCancelRequest(requestId, dto);
 
-            System.out.println("✅ Запрос обработан! Новый статус: " + updated.getStatus());
+            System.out.println("✅ Запрос обработан! Новый статус: " + updated.status());
             if (status == CancelRequestStatus.APPROVED) {
                 System.out.println("   Бронирование отменено.");
             } else {
@@ -423,7 +412,7 @@ public class ConsoleRunner implements CommandLineRunner {
         }
     }
     private void showMyAuditLogs() {
-        List<AuditLog> logs = auditService.getAuditLogsByUser(currentUser.getUserId());
+        List<AuditLog> logs = auditService.getAuditLogsByUser(currentUser.userId());
         if (logs.isEmpty()) {
             System.out.println("Нет записей аудита для ваших действий.");
             return;
@@ -471,14 +460,14 @@ public class ConsoleRunner implements CommandLineRunner {
 
         System.out.println("\n=== ВСЕ ЗАПРОСЫ НА ОТМЕНУ ===");
         for (CancelRequestDto request : requests) {
-            System.out.printf("📋 Запрос #%s [%s]%n", request.getRequestId(), request.getStatus());
-            System.out.printf("   Бронирование: %s%n", request.getBookingId());
-            System.out.printf("   Пользователь: %s%n", request.getUserId());
-            System.out.printf("   Причина: %s%n", request.getReason());
-            System.out.printf("   Создан: %s%n", request.getCreatedAt());
-            if (request.getProcessedAt() != null) {
-                System.out.printf("   Обработан: %s%n", request.getProcessedAt());
-                System.out.printf("   Обработал: %s%n", request.getProcessedBy());
+            System.out.printf("📋 Запрос #%s [%s]%n", request.requestId(), request.status());
+            System.out.printf("   Бронирование: %s%n", request.bookingId());
+            System.out.printf("   Пользователь: %s%n", request.userId());
+            System.out.printf("   Причина: %s%n", request.reason());
+            System.out.printf("   Создан: %s%n", request.createdAt());
+            if (request.processedAt() != null) {
+                System.out.printf("   Обработан: %s%n", request.processedAt());
+                System.out.printf("   Обработал: %s%n", request.processedBy());
             }
             System.out.println("   ---");
         }
@@ -495,16 +484,16 @@ public class ConsoleRunner implements CommandLineRunner {
 
         try {
             CancelRequestDto request = cancelRequestService.getCancelRequest(requestId);
-            if (!"PENDING".equals(request.getStatus())) {
-                System.out.println("❌ Запрос уже обработан. Статус: " + request.getStatus());
+            if (!"PENDING".equals(request.status())) {
+                System.out.println("❌ Запрос уже обработан. Статус: " + request.status());
                 return;
             }
 
             System.out.println("\nИнформация о запросе:");
-            System.out.println("   Бронирование: " + request.getBookingId());
-            System.out.println("   Пользователь: " + request.getUserId());
-            System.out.println("   Причина: " + request.getReason());
-            System.out.println("   Создан: " + request.getCreatedAt());
+            System.out.println("   Бронирование: " + request.bookingId());
+            System.out.println("   Пользователь: " + request.userId());
+            System.out.println("   Причина: " + request.reason());
+            System.out.println("   Создан: " + request.createdAt());
 
             System.out.println("\n1. Подтвердить (APPROVED)");
             System.out.println("2. Отклонить (REJECTED)");
@@ -521,10 +510,10 @@ public class ConsoleRunner implements CommandLineRunner {
                 return;
             }
 
-            CancelRequestUpdateDto dto = new CancelRequestUpdateDto(status, currentUser.getUserId());
+            CancelRequestUpdateDto dto = new CancelRequestUpdateDto(status, currentUser.userId());
             CancelRequestDto updated = cancelRequestService.processCancelRequest(requestId, dto);
 
-            System.out.println("✅ Запрос обработан! Новый статус: " + updated.getStatus());
+            System.out.println("✅ Запрос обработан! Новый статус: " + updated.status());
         } catch (RuntimeException e) {
             System.out.println("❌ Ошибка: " + e.getMessage());
         }
@@ -599,20 +588,15 @@ public class ConsoleRunner implements CommandLineRunner {
         System.out.print("Новая роль (CUSTOMER/MANAGER/ADMIN): ");
         String roleStr = scanner.nextLine().trim();
 
-        UserCreateDto dto = new UserCreateDto();
-        if (!username.isEmpty()) dto.setUsername(username);
-        if (!email.isEmpty()) dto.setEmail(email);
-        if (!password.isEmpty()) dto.setPassword(password);
-        if (!roleStr.isEmpty()) {
-            try {
-                dto.setRole(Role.valueOf(roleStr.toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                System.out.println("⚠️ Неверная роль, роль не изменена");
-            }
-        }
+        UserCreateDto dto = new UserCreateDto(
+                username.isEmpty()?null:username,
+                email.isEmpty()?null:email,
+                password.isEmpty()?null:password,
+                roleStr.isEmpty()?null:Role.valueOf(roleStr.toUpperCase())
+        );
 
         try {
-            UserResponseDto user = userService.updateUser(userId, dto, currentUser.getUserId());
+            UserResponseDto user = userService.updateUser(userId, dto, currentUser.userId());
             System.out.println("✅ Пользователь обновлен");
         } catch (RuntimeException e) {
             System.out.println("❌ Ошибка: " + e.getMessage());
@@ -631,10 +615,10 @@ public class ConsoleRunner implements CommandLineRunner {
 
         try {
             if (choice.equals("1")) {
-                userService.softDeleteUser(userId, currentUser.getUserId());
+                userService.softDeleteUser(userId, currentUser.userId());
                 System.out.println("✅ Пользователь помечен как удаленный");
             } else if (choice.equals("2")) {
-                userService.restoreUser(userId, currentUser.getUserId());
+                userService.restoreUser(userId, currentUser.userId());
                 System.out.println("✅ Пользователь восстановлен");
             } else if (choice.equals("3")) {
                 userService.hardDeleteUser(userId);
@@ -659,10 +643,10 @@ public class ConsoleRunner implements CommandLineRunner {
 
         try {
             if (choice.equals("1")) {
-                hotelService.softDeleteHotel(hotelId, currentUser.getUserId());
+                hotelService.softDeleteHotel(hotelId, currentUser.userId());
                 System.out.println("✅ Отель помечен как удаленный");
             } else if (choice.equals("2")) {
-                hotelService.restoreHotel(hotelId, currentUser.getUserId());
+                hotelService.restoreHotel(hotelId, currentUser.userId());
                 System.out.println("✅ Отель восстановлен");
             } else if (choice.equals("3")) {
                 hotelService.hardDeleteHotel(hotelId);
@@ -684,9 +668,9 @@ public class ConsoleRunner implements CommandLineRunner {
         }
         System.out.println("\n=== ДОСТУПНЫЕ ОТЕЛИ ===");
         for (HotelResponseDto hotel : hotels) {
-            System.out.printf("🏨 %s [%s, %s]%n", hotel.getName(), hotel.getCity(), hotel.getCountry());
-            System.out.printf("   ID: %s%n", hotel.getHotelId());
-            System.out.printf("   Адрес: %s%n", hotel.getAddress());
+            System.out.printf("🏨 %s [%s, %s]%n", hotel.name(), hotel.city(), hotel.country());
+            System.out.printf("   ID: %s%n", hotel.hotelId());
+            System.out.printf("   Адрес: %s%n", hotel.address());
             System.out.println("   ---");
         }
     }
@@ -715,11 +699,11 @@ public class ConsoleRunner implements CommandLineRunner {
         System.out.println("\n=== ДОСТУПНЫЕ КОМНАТЫ ===");
         for (RoomResponseDto room : availableRooms) {
             long nights = java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut);
-            BigDecimal total = room.getPricePerNight().multiply(BigDecimal.valueOf(nights));
+            BigDecimal total = room.pricePerNight().multiply(BigDecimal.valueOf(nights));
             System.out.printf("🛏️ %s [%d мест] - $%.2f/ночь (Всего: $%.2f)%n",
-                    room.getRoomType(), room.getCapacity(), room.getPricePerNight(), total);
-            System.out.printf("   ID комнаты: %s%n", room.getRoomId());
-            System.out.printf("   Описание: %s%n", room.getDescription());
+                    room.roomType(), room.capacity(), room.pricePerNight(), total);
+            System.out.printf("   ID комнаты: %s%n", room.roomId());
+            System.out.printf("   Описание: %s%n", room.description());
             System.out.println("   ---");
         }
     }
@@ -740,12 +724,12 @@ public class ConsoleRunner implements CommandLineRunner {
         // Фильтруем активные
         List<BookingResponseDto> activeBookings = new ArrayList<>();
         for (BookingResponseDto booking : allBookings) {
-            System.out.println("Бронирование: комната=" + booking.getRoomId() +
-                    ", даты=" + booking.getCheckInDate() + " - " + booking.getCheckOutDate() +
-                    ", статус=" + booking.getStatus());
+            System.out.println("Бронирование: комната=" + booking.roomId() +
+                    ", даты=" + booking.checkInDate() + " - " + booking.checkOutDate() +
+                    ", статус=" + booking.status());
 
-            if (booking.getStatus() != BookingStatus.CANCELLED &&
-                    booking.getStatus() != BookingStatus.COMPLETED) {
+            if (booking.status() != BookingStatus.CANCELLED &&
+                    booking.status() != BookingStatus.COMPLETED) {
                 activeBookings.add(booking);
                 System.out.println("  -> АКТИВНОЕ");
             } else {
@@ -757,15 +741,15 @@ public class ConsoleRunner implements CommandLineRunner {
 
         // Проверяем каждую комнату
         for (RoomResponseDto room : allRooms) {
-            System.out.println("\nПроверяем комнату: " + room.getRoomId() + " (" + room.getRoomType() + ")");
+            System.out.println("\nПроверяем комнату: " + room.roomId() + " (" + room.roomType() + ")");
             boolean isAvailable = true;
 
             for (BookingResponseDto booking : activeBookings) {
-                boolean sameRoom = booking.getRoomId().equals(room.getRoomId());
-                boolean dateOverlap = checkIn.isBefore(booking.getCheckOutDate()) &&
-                        checkOut.isAfter(booking.getCheckInDate());
+                boolean sameRoom = booking.roomId().equals(room.roomId());
+                boolean dateOverlap = checkIn.isBefore(booking.checkOutDate()) &&
+                        checkOut.isAfter(booking.checkInDate());
 
-                System.out.println("  Бронирование: комната=" + booking.getRoomId() +
+                System.out.println("  Бронирование: комната=" + booking.roomId() +
                         ", sameRoom=" + sameRoom +
                         ", dateOverlap=" + dateOverlap);
 
@@ -789,19 +773,19 @@ public class ConsoleRunner implements CommandLineRunner {
     }
 
     private void showMyBookings() {
-        List<BookingResponseDto> bookings = bookingService.getBookingsByUser(currentUser.getUserId());
+        List<BookingResponseDto> bookings = bookingService.getBookingsByUser(currentUser.userId());
         if (bookings.isEmpty()) {
             System.out.println("У вас нет бронирований.");
             return;
         }
         System.out.println("\n=== МОИ БРОНИРОВАНИЯ ===");
         for (BookingResponseDto booking : bookings) {
-            RoomResponseDto room = roomService.getRoom(booking.getRoomId());
-            HotelResponseDto hotel = hotelService.getHotelsByManagerId(room.getHotelId()).stream().findFirst().orElse(null);
+            RoomResponseDto room = roomService.getRoom(booking.roomId());
+            HotelResponseDto hotel = hotelService.getHotelsByManagerId(room.hotelId()).stream().findFirst().orElse(null);
             System.out.printf("📅 %s - %s | Статус: %s%n",
-                    booking.getCheckInDate(), booking.getCheckOutDate(), booking.getStatus());
-            System.out.printf("   Сумма: $%.2f%n", booking.getTotalPrice());
-            System.out.printf("   ID брони: %s%n", booking.getBookingId());
+                    booking.checkInDate(), booking.checkOutDate(), booking.status());
+            System.out.printf("   Сумма: $%.2f%n", booking.totalPrice());
+            System.out.printf("   ID брони: %s%n", booking.bookingId());
             System.out.println("   ---");
         }
     }
@@ -814,11 +798,11 @@ public class ConsoleRunner implements CommandLineRunner {
         System.out.print("Дата выезда (ДД.ММ.ГГГГ): ");
         LocalDate checkOut = parseDate(scanner.nextLine().trim());
 
-        BookingCreateDto dto = new BookingCreateDto(currentUser.getUserId(), roomId, checkIn, checkOut);
+        BookingCreateDto dto = new BookingCreateDto(currentUser.userId(), roomId, checkIn, checkOut);
         try {
             BookingResponseDto booking = bookingService.createBooking(dto);
-            System.out.println("✅ Бронирование создано! ID: " + booking.getBookingId());
-            System.out.printf("💰 Общая стоимость: $%.2f%n", booking.getTotalPrice());
+            System.out.println("✅ Бронирование создано! ID: " + booking.bookingId());
+            System.out.printf("💰 Общая стоимость: $%.2f%n", booking.totalPrice());
         } catch (RuntimeException e) {
             System.out.println("❌ Ошибка: " + e.getMessage());
         }
@@ -837,17 +821,17 @@ public class ConsoleRunner implements CommandLineRunner {
 
     private void showMyLoyalty() {
         try {
-            LoyaltyProgramResponseDto loyalty = loyaltyProgramService.getLoyaltyProgramByUser(currentUser.getUserId());
+            LoyaltyProgramResponseDto loyalty = loyaltyProgramService.getLoyaltyProgramByUser(currentUser.userId());
             System.out.println("\n=== ПРОГРАММА ЛОЯЛЬНОСТИ ===");
-            System.out.println("🏆 Уровень: " + loyalty.getTier());
-            System.out.println("⭐ Баллов: " + loyalty.getTotalPoints());
-            System.out.println("💰 Всего потрачено: $" + loyalty.getTotalSpent());
+            System.out.println("🏆 Уровень: " + loyalty.tier());
+            System.out.println("⭐ Баллов: " + loyalty.totalPoints());
+            System.out.println("💰 Всего потрачено: $" + loyalty.totalSpent());
             System.out.println("\nСледующий уровень:");
-            if (loyalty.getTier() == LoyaltyTier.BRONZE) {
+            if (loyalty.tier() == LoyaltyTier.BRONZE) {
                 System.out.println("   SILVER - нужно 1000 баллов");
-            } else if (loyalty.getTier() == LoyaltyTier.SILVER) {
+            } else if (loyalty.tier() == LoyaltyTier.SILVER) {
                 System.out.println("   GOLD - нужно 5000 баллов");
-            } else if (loyalty.getTier() == LoyaltyTier.GOLD) {
+            } else if (loyalty.tier() == LoyaltyTier.GOLD) {
                 System.out.println("   PLATINUM - нужно 10000 баллов");
             } else {
                 System.out.println("   Максимальный уровень!");
@@ -857,15 +841,15 @@ public class ConsoleRunner implements CommandLineRunner {
         }
     }
     private void showMyHotels() {
-        List<HotelResponseDto> hotels = hotelService.getHotelsByManagerId(currentUser.getUserId());
+        List<HotelResponseDto> hotels = hotelService.getHotelsByManagerId(currentUser.userId());
         if (hotels.isEmpty()) {
             System.out.println("Вы не управляете ни одним отелем.");
             return;
         }
         System.out.println("\n=== МОИ ОТЕЛИ ===");
         for (HotelResponseDto hotel : hotels) {
-            System.out.printf("🏨 %s [%s, %s]%n", hotel.getName(), hotel.getCity(), hotel.getCountry());
-            System.out.printf("   ID: %s%n", hotel.getHotelId());
+            System.out.printf("🏨 %s [%s, %s]%n", hotel.name(), hotel.city(), hotel.country());
+            System.out.printf("   ID: %s%n", hotel.hotelId());
         }
     }
 
@@ -877,12 +861,12 @@ public class ConsoleRunner implements CommandLineRunner {
         System.out.println("\n=== БРОНИРОВАНИЯ ОТЕЛЯ ===");
         for (RoomResponseDto room : rooms) {
             List<BookingResponseDto> bookings = bookingService.getAllBookings().stream()
-                    .filter(b -> b.getRoomId().equals(room.getRoomId()))
+                    .filter(b -> b.roomId().equals(room.roomId()))
                     .collect(Collectors.toList());
             for (BookingResponseDto booking : bookings) {
                 System.out.printf("📅 Комната %s: %s - %s [%s]%n",
-                        room.getRoomType(), booking.getCheckInDate(), booking.getCheckOutDate(), booking.getStatus());
-                System.out.printf("   ID брони: %s%n", booking.getBookingId());
+                        room.roomType(), booking.checkInDate(), booking.checkOutDate(), booking.status());
+                System.out.printf("   ID брони: %s%n", booking.bookingId());
             }
         }
     }
@@ -894,7 +878,7 @@ public class ConsoleRunner implements CommandLineRunner {
         List<RoomResponseDto> rooms = roomService.getRoomsByHotel(hotelId);
         System.out.println("Доступные комнаты:");
         for (RoomResponseDto room : rooms) {
-            System.out.printf("   %s - $%.2f/ночь (ID: %s)%n", room.getRoomType(), room.getPricePerNight(), room.getRoomId());
+            System.out.printf("   %s - $%.2f/ночь (ID: %s)%n", room.roomType(), room.pricePerNight(), room.roomId());
         }
 
         System.out.print("Введите ID пользователя (клиента): ");
@@ -923,8 +907,8 @@ public class ConsoleRunner implements CommandLineRunner {
         System.out.println("\n=== КОМНАТЫ ОТЕЛЯ ===");
         for (RoomResponseDto room : rooms) {
             System.out.printf("🛏️ %s [%d мест] - $%.2f/ночь%n",
-                    room.getRoomType(), room.getCapacity(), room.getPricePerNight());
-            System.out.printf("   ID: %s%n", room.getRoomId());
+                    room.roomType(), room.capacity(), room.pricePerNight());
+            System.out.printf("   ID: %s%n", room.roomId());
         }
     }
 
@@ -956,14 +940,14 @@ public class ConsoleRunner implements CommandLineRunner {
     }
 
     private UUID selectMyHotel() {
-        List<HotelResponseDto> hotels = hotelService.getHotelsByManagerId(currentUser.getUserId());
+        List<HotelResponseDto> hotels = hotelService.getHotelsByManagerId(currentUser.userId());
         if (hotels.isEmpty()) {
             System.out.println("Вы не управляете ни одним отелем.");
             return null;
         }
         System.out.println("Ваши отели:");
         for (int i = 0; i < hotels.size(); i++) {
-            System.out.printf("%d. %s (ID: %s)%n", i + 1, hotels.get(i).getName(), hotels.get(i).getHotelId());
+            System.out.printf("%d. %s (ID: %s)%n", i + 1, hotels.get(i).name(), hotels.get(i).hotelId());
         }
         System.out.print("Выберите отель (номер): ");
         int index = Integer.parseInt(scanner.nextLine().trim()) - 1;
@@ -971,7 +955,7 @@ public class ConsoleRunner implements CommandLineRunner {
             System.out.println("❌ Неверный выбор");
             return null;
         }
-        return hotels.get(index).getHotelId();
+        return hotels.get(index).hotelId();
     }
 
     private void createHotel() {
@@ -990,7 +974,7 @@ public class ConsoleRunner implements CommandLineRunner {
         HotelCreateDto dto = new HotelCreateDto(name, city, country, address, managerId);
         try {
             HotelResponseDto hotel = hotelService.createHotel(dto);
-            System.out.println("✅ Отель создан! ID: " + hotel.getHotelId());
+            System.out.println("✅ Отель создан! ID: " + hotel.hotelId());
         } catch (RuntimeException e) {
             System.out.println("❌ Ошибка: " + e.getMessage());
         }
@@ -1012,12 +996,14 @@ public class ConsoleRunner implements CommandLineRunner {
         System.out.print("Новый ID менеджера: ");
         String managerIdStr = scanner.nextLine().trim();
 
-        HotelUpdateDto dto = new HotelUpdateDto();
-        if (!name.isEmpty()) dto.setName(name);
-        if (!city.isEmpty()) dto.setCity(city);
-        if (!country.isEmpty()) dto.setCountry(country);
-        if (!address.isEmpty()) dto.setAddress(address);
-        if (!managerIdStr.isEmpty()) dto.setManagerId(UUID.fromString(managerIdStr));
+        HotelUpdateDto dto = new HotelUpdateDto(
+                name.isBlank()?null:name,
+                city.isBlank()?null:city,
+                country.isBlank()?null:country,
+                address.isBlank()?null:address,
+                null,
+                managerIdStr.isBlank()?null:UUID.fromString(managerIdStr)
+        );
 
         try {
             HotelResponseDto hotel = hotelService.updateHotel(hotelId, dto);
@@ -1035,8 +1021,8 @@ public class ConsoleRunner implements CommandLineRunner {
         }
         System.out.println("\n=== ВСЕ ПОЛЬЗОВАТЕЛИ ===");
         for (UserResponseDto user : users) {
-            System.out.printf("👤 %s [%s] - %s%n", user.getUsername(), user.getEmail(), user.getRole());
-            System.out.printf("   ID: %s%n", user.getUserId());
+            System.out.printf("👤 %s [%s] - %s%n", user.username(), user.email(), user.role());
+            System.out.printf("   ID: %s%n", user.userId());
             System.out.println("   ---");
         }
     }
@@ -1062,7 +1048,7 @@ public class ConsoleRunner implements CommandLineRunner {
         UserCreateDto dto = new UserCreateDto(username, email, password, role);
         try {
             UserResponseDto user = userService.createUser(dto);
-            System.out.println("✅ Пользователь создан! ID: " + user.getUserId());
+            System.out.println("✅ Пользователь создан! ID: " + user.userId());
         } catch (RuntimeException e) {
             System.out.println("❌ Ошибка: " + e.getMessage());
         }
@@ -1076,9 +1062,9 @@ public class ConsoleRunner implements CommandLineRunner {
         System.out.println("\n=== КОМНАТЫ ОТЕЛЯ ===");
         for (RoomResponseDto room : rooms) {
             System.out.printf("🛏️ %s [%d мест] - $%.2f/ночь%n",
-                    room.getRoomType(), room.getCapacity(), room.getPricePerNight());
-            System.out.printf("   ID: %s%n", room.getRoomId());
-            System.out.printf("   Описание: %s%n", room.getDescription());
+                    room.roomType(), room.capacity(), room.pricePerNight());
+            System.out.printf("   ID: %s%n", room.roomId());
+            System.out.printf("   Описание: %s%n", room.description());
         }
     }
 
@@ -1100,7 +1086,7 @@ public class ConsoleRunner implements CommandLineRunner {
         RoomCreateDto dto = new RoomCreateDto(hotelId, roomType, price, capacity, description, null, area);
         try {
             RoomResponseDto room = roomService.createRoom(dto);
-            System.out.println("✅ Номер создан! ID: " + room.getRoomId());
+            System.out.println("✅ Номер создан! ID: " + room.roomId());
         } catch (RuntimeException e) {
             System.out.println("❌ Ошибка: " + e.getMessage());
         }
@@ -1120,11 +1106,14 @@ public class ConsoleRunner implements CommandLineRunner {
         System.out.print("Новое описание: ");
         String description = scanner.nextLine().trim();
 
-        RoomUpdateDto dto = new RoomUpdateDto();
-        if (!typeStr.isEmpty()) dto.setRoomType(RoomType.valueOf(typeStr.toUpperCase()));
-        if (!priceStr.isEmpty()) dto.setPricePerNight(new BigDecimal(priceStr));
-        if (!capacityStr.isEmpty()) dto.setCapacity(Integer.parseInt(capacityStr));
-        if (!description.isEmpty()) dto.setDescription(description);
+        RoomUpdateDto dto = new RoomUpdateDto(
+                typeStr.isBlank()?null:RoomType.valueOf(typeStr.toUpperCase()),
+                priceStr.isBlank()?null:new BigDecimal(priceStr),
+                capacityStr.isBlank()?null:Integer.parseInt(capacityStr),
+                description.isBlank()?null:description,
+                null,
+                null
+        );
 
         try {
             RoomResponseDto room = roomService.updateRoom(roomId, dto);
@@ -1142,11 +1131,11 @@ public class ConsoleRunner implements CommandLineRunner {
         System.out.println("\n=== БРОНИРОВАНИЯ ОТЕЛЯ ===");
         for (RoomResponseDto room : rooms) {
             List<BookingResponseDto> bookings = bookingService.getAllBookings().stream()
-                    .filter(b -> b.getRoomId().equals(room.getRoomId()))
+                    .filter(b -> b.roomId().equals(room.roomId()))
                     .collect(Collectors.toList());
             for (BookingResponseDto booking : bookings) {
                 System.out.printf("📅 Комната %s: %s - %s [%s]%n",
-                        room.getRoomType(), booking.getCheckInDate(), booking.getCheckOutDate(), booking.getStatus());
+                        room.roomType(), booking.checkInDate(), booking.checkOutDate(), booking.status());
             }
         }
     }
@@ -1164,7 +1153,7 @@ public class ConsoleRunner implements CommandLineRunner {
         BookingCreateDto dto = new BookingCreateDto(userId, roomId, checkIn, checkOut);
         try {
             BookingResponseDto booking = bookingService.createBooking(dto);
-            System.out.println("✅ Бронирование создано! ID: " + booking.getBookingId());
+            System.out.println("✅ Бронирование создано! ID: " + booking.bookingId());
         } catch (RuntimeException e) {
             System.out.println("❌ Ошибка: " + e.getMessage());
         }
@@ -1203,7 +1192,7 @@ public class ConsoleRunner implements CommandLineRunner {
         System.out.println("Все отели:");
         for (int i = 0; i < hotels.size(); i++) {
             System.out.printf("%d. %s [%s] (ID: %s)%n",
-                    i + 1, hotels.get(i).getName(), hotels.get(i).getCity(), hotels.get(i).getHotelId());
+                    i + 1, hotels.get(i).name(), hotels.get(i).city(), hotels.get(i).hotelId());
         }
         System.out.print("Выберите отель (номер): ");
         int index = Integer.parseInt(scanner.nextLine().trim()) - 1;
@@ -1211,7 +1200,7 @@ public class ConsoleRunner implements CommandLineRunner {
             System.out.println("❌ Неверный выбор");
             return null;
         }
-        return hotels.get(index).getHotelId();
+        return hotels.get(index).hotelId();
     }
 
     private LocalDate parseDate(String dateStr) {

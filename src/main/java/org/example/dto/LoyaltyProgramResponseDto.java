@@ -1,20 +1,15 @@
+// LoyaltyProgramResponseDto.java
 package org.example.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.example.domain.LoyaltyTier;
+import org.example.domain.enums.LoyaltyTier;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class LoyaltyProgramResponseDto {
-    private UUID loyaltyId;
-    private UUID userId;
-    private Integer totalPoints;
-    private LoyaltyTier tier;
-    private BigDecimal totalSpent;
-}
+public record LoyaltyProgramResponseDto(
+        UUID loyaltyId,
+        UUID userId,
+        Integer totalPoints,
+        LoyaltyTier tier,
+        BigDecimal totalSpent
+) {}

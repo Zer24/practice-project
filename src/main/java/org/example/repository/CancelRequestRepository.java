@@ -1,7 +1,7 @@
 package org.example.repository;
 
 import org.example.domain.CancelRequest;
-import org.example.domain.CancelRequestStatus;
+import org.example.domain.enums.CancelRequestStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;

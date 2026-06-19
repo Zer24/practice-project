@@ -1,6 +1,6 @@
 package org.example.service;
 
-import org.example.domain.AuditAction;
+import org.example.domain.enums.AuditAction;
 import org.example.domain.AuditLog;
 import org.example.repository.AuditLogRepository;
 import org.springframework.stereotype.Service;
@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -21,6 +20,7 @@ public class AuditService {
         this.auditLogRepository = auditLogRepository;
     }
 
+    @Transactional
     public void logRoleChange(UUID userId, String oldRole, String newRole, UUID performedBy) {
         AuditLog log = new AuditLog(
                 AuditAction.ROLE_CHANGE,
@@ -34,6 +34,7 @@ public class AuditService {
         auditLogRepository.save(log);
     }
 
+    @Transactional
     public void logHotelDelete(UUID hotelId, String hotelName, UUID performedBy, boolean softDelete) {
         AuditAction action = softDelete ? AuditAction.HOTEL_DELETE : AuditAction.HOTEL_RESTORE;
         String details = softDelete ? "Hotel soft deleted: " + hotelName : "Hotel restored: " + hotelName;
@@ -50,6 +51,7 @@ public class AuditService {
         auditLogRepository.save(log);
     }
 
+    @Transactional
     public void logUserDelete(UUID userId, String username, UUID performedBy, boolean softDelete) {
         AuditAction action = softDelete ? AuditAction.USER_DELETE : AuditAction.USER_RESTORE;
         String details = softDelete ? "User soft deleted: " + username : "User restored: " + username;

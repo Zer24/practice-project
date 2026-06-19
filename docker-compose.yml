@@ -8,9 +8,11 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
-      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro  # Добавьте эту строку
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     environment:
-      - MONGO_INITDB_DATABASE=hotel_booking_db
+      - MONGO_INITDB_DATABASE=${MONGODB_DATABASE:-hotel_booking_db}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
     networks:
       - hotel-network
     restart: unless-stopped
@@ -21,12 +23,14 @@ services:
     stdin_open: true
     tty: true
     environment:
-      - SPRING_DATA_MONGODB_HOST=mongodb
-      - SPRING_DATA_MONGODB_PORT=27017
-      - SPRING_DATA_MONGODB_DATABASE=hotel_booking_db
-      - SPRING_DATA_MONGODB_USERNAME=hotel_admin
-      - SPRING_DATA_MONGODB_PASSWORD=hotel_password_123
-      - SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE=hotel_booking_db
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATA_MONGODB_HOST=${MONGODB_HOST:-mongodb}
+      - SPRING_DATA_MONGODB_PORT=${MONGODB_PORT:-27017}
+      - SPRING_DATA_MONGODB_DATABASE=${MONGODB_DATABASE:-hotel_booking_db}
+      - SPRING_DATA_MONGODB_USERNAME=${MONGODB_USERNAME}
+      - SPRING_DATA_MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE=${MONGODB_AUTH_DATABASE:-hotel_booking_db}
+      - BCRYPT_STRENGTH=${BCRYPT_STRENGTH:-10}
     networks:
       - hotel-network
     depends_on:

@@ -1,20 +1,12 @@
+// BookingUpdateDto.java
 package org.example.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.example.domain.BookingStatus;
+import org.example.domain.enums.BookingStatus;
 
 import java.time.LocalDate;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class BookingUpdateDto {
-
-    private LocalDate checkInDate;
-
-    private LocalDate checkOutDate;
-
-    private BookingStatus status;
-}
+public record BookingUpdateDto(
+        LocalDate checkInDate,
+        LocalDate checkOutDate,
+        BookingStatus status
+) {}

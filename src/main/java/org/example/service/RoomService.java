@@ -1,7 +1,8 @@
 package org.example.service;
 
+import lombok.AllArgsConstructor;
 import org.example.domain.Room;
-import org.example.domain.RoomType;
+import org.example.domain.enums.RoomType;
 import org.example.dto.RoomCreateDto;
 import org.example.dto.RoomResponseDto;
 import org.example.dto.RoomUpdateDto;
@@ -18,16 +19,13 @@ import java.util.stream.Collectors;
 
 @Service
 @Validated
-@Transactional
+@AllArgsConstructor
 public class RoomService {
 
     private final RoomRepository roomRepository;
     private final RoomMapper roomMapper;
 
-    public RoomService(RoomRepository roomRepository, RoomMapper roomMapper) {
-        this.roomRepository = roomRepository;
-        this.roomMapper = roomMapper;
-    }
+    @Transactional
     public RoomResponseDto createRoom(@Valid RoomCreateDto dto) {
         Room room = roomMapper.toEntity(dto);
         Room saved = roomRepository.save(room);
@@ -49,6 +47,8 @@ public class RoomService {
 
         return roomMapper.toDto(room);
     }
+
+    @Transactional
     public RoomResponseDto updateRoom(UUID roomId, @Valid RoomUpdateDto dto) {
         Room room = roomRepository.findByRoomId(roomId)
                 .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
@@ -58,33 +58,24 @@ public class RoomService {
         }
 
         // Обновляем только те поля, которые были переданы (не null)
-        if (dto.getRoomType() != null) {
-            room.setRoomType(dto.getRoomType());
-        }
-
-        if (dto.getPricePerNight() != null) {
-            room.setPricePerNight(dto.getPricePerNight());
-        }
-
-        if (dto.getCapacity() != null) {
-            room.setCapacity(dto.getCapacity());
-        }
-
-        if (dto.getDescription() != null && !dto.getDescription().isEmpty()) {
-            room.setDescription(dto.getDescription());
-        }
-
-        if (dto.getAmenities() != null) {
-            room.setAmenities(dto.getAmenities());
-        }
-
-        if (dto.getArea() != null) {
-            room.setArea(dto.getArea());
-        }
+        if (dto.roomType() != null) {
+            room.setRoomType(dto.roomType());}
+        if (dto.pricePerNight() != null) {
+            room.setPricePerNight(dto.pricePerNight());}
+        if (dto.capacity() != null) {
+            room.setCapacity(dto.capacity());}
+        if (dto.description() != null && !dto.description().isEmpty()) {
+            room.setDescription(dto.description());}
+        if (dto.amenities() != null) {
+            room.setAmenities(dto.amenities());}
+        if (dto.area() != null) {
+            room.setArea(dto.area());}
 
         Room updated = roomRepository.save(room);
         return roomMapper.toDto(updated);
     }
+
+    @Transactional
     public void softDeleteRoom(UUID roomId) {
         Room room = roomRepository.findByRoomId(roomId)
                 .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
@@ -92,6 +83,8 @@ public class RoomService {
         room.setDeleted(true);
         roomRepository.save(room);
     }
+
+    @Transactional
     public void restoreRoom(UUID roomId) {
         Room room = roomRepository.findByRoomId(roomId)
                 .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
@@ -99,6 +92,8 @@ public class RoomService {
         room.setDeleted(false);
         roomRepository.save(room);
     }
+
+    @Transactional
     public void hardDeleteRoom(UUID roomId) {
         Room room = roomRepository.findByRoomId(roomId)
                 .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));

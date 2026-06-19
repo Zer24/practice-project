@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
+import org.example.domain.enums.BookingStatus;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
