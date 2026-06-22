@@ -2,6 +2,8 @@ package org.example.repository;
 
 import org.example.domain.CancelRequest;
 import org.example.domain.enums.CancelRequestStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -18,6 +20,7 @@ public interface CancelRequestRepository extends MongoRepository<CancelRequest, 
     List<CancelRequest> findByUserId(UUID userId);
 
     List<CancelRequest> findByStatus(CancelRequestStatus status);
+    Page<CancelRequest> findByUserId(UUID userId, Pageable pageable);
 
     List<CancelRequest> findByBookingId(UUID bookingId);
 

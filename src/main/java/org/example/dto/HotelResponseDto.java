@@ -1,4 +1,3 @@
-// HotelResponseDto.java
 package org.example.dto;
 
 import org.example.domain.Hotel;

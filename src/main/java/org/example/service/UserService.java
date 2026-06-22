@@ -2,13 +2,14 @@ package org.example.service;
 
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
-import org.example.domain.enums.Role;
 import org.example.domain.User;
+import org.example.domain.enums.Role;
 import org.example.dto.UserCreateDto;
 import org.example.dto.UserResponseDto;
 import org.example.mapper.UserMapper;
 import org.example.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,7 +59,6 @@ public class UserService {
             throw new RuntimeException("Cannot update deleted user");
         }
 
-        // Сохраняем старую роль для аудита
         Role oldRole = user.getRole();
 
         if (request.username() != null && !request.username().equals(user.getUsername())) {
@@ -85,7 +85,6 @@ public class UserService {
 
         User updatedUser = userRepository.save(user);
 
-        // Логируем смену роли
         if (!oldRole.equals(user.getRole())) {
             auditService.logRoleChange(
                     userId,
@@ -156,6 +155,10 @@ public class UserService {
                 .stream()
                 .map(UserResponseDto::new)
                 .collect(Collectors.toList());
+    }
+    public Page<UserResponseDto> getAllUsers(Pageable pageable) {
+        return userRepository.findByIsDeletedFalse(pageable)
+                .map(UserResponseDto::new);
     }
 
     public UserResponseDto getUserById(UUID userId) {

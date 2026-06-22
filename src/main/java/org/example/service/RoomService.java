@@ -8,6 +8,8 @@ import org.example.dto.RoomResponseDto;
 import org.example.dto.RoomUpdateDto;
 import org.example.mapper.RoomMapper;
 import org.example.repository.RoomRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -57,7 +59,6 @@ public class RoomService {
             throw new RuntimeException("Cannot update deleted room");
         }
 
-        // Обновляем только те поля, которые были переданы (не null)
         if (dto.roomType() != null) {
             room.setRoomType(dto.roomType());}
         if (dto.pricePerNight() != null) {
@@ -105,6 +106,10 @@ public class RoomService {
                 .stream()
                 .map(roomMapper::toDto)
                 .collect(Collectors.toList());
+    }
+    public Page<RoomResponseDto> getRoomsByHotel(UUID hotelId, Pageable pageable) {
+        return roomRepository.findByHotelIdAndIsDeletedFalse(hotelId, pageable)
+                .map(roomMapper::toDto);
     }
     public List<RoomResponseDto> getRoomsByType(RoomType roomType) {
         return roomRepository.findByRoomTypeAndIsDeletedFalse(roomType)

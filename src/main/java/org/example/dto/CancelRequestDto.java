@@ -1,4 +1,3 @@
-// CancelRequestDto.java
 package org.example.dto;
 
 import java.time.LocalDateTime;

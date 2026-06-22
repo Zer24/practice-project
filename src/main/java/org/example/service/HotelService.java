@@ -1,5 +1,6 @@
 package org.example.service;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.example.domain.Hotel;
 import org.example.dto.HotelCreateDto;
@@ -7,10 +8,11 @@ import org.example.dto.HotelResponseDto;
 import org.example.dto.HotelUpdateDto;
 import org.example.mapper.HotelMapper;
 import org.example.repository.HotelRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
-import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.UUID;
@@ -32,11 +34,26 @@ public class HotelService {
         return hotelMapper.toDto(saved);
     }
 
+    public Page<HotelResponseDto> getAllHotels(Pageable pageable) {
+        return hotelRepository.findByIsDeletedFalse(pageable)
+                .map(HotelResponseDto::new);
+    }
+
     public List<HotelResponseDto> getAllHotels() {
         return hotelRepository.findByIsDeletedFalse()
                 .stream()
                 .map(HotelResponseDto::new)
                 .collect(Collectors.toList());
+    }
+
+    public Page<HotelResponseDto> getHotelsByCity(String city, Pageable pageable) {
+        return hotelRepository.findByCityAndIsDeletedFalse(city, pageable)
+                .map(HotelResponseDto::new);
+    }
+
+    public Page<HotelResponseDto> getHotelsByManagerId(UUID managerId, Pageable pageable) {
+        return hotelRepository.findByManagerIdAndIsDeletedFalse(managerId, pageable)
+                .map(HotelResponseDto::new);
     }
 
     public HotelResponseDto getHotel(UUID hotelId) {

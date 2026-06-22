@@ -65,10 +65,8 @@ public class LoyaltyProgramService {
         LoyaltyProgram loyaltyProgram = loyaltyProgramRepository.findByLoyaltyId(loyaltyId)
                 .orElseThrow(() -> new RuntimeException("Loyalty program not found with id: " + loyaltyId));
 
-        // Обновляем только те поля, которые были переданы
         if (dto.totalPoints() != null) {
             loyaltyProgram.setTotalPoints(dto.totalPoints());
-            // Если изменились баллы, обновляем уровень
             updateTierByPoints(loyaltyProgram);
         }
 
@@ -120,7 +118,6 @@ public class LoyaltyProgramService {
         BigDecimal newTotalSpent = loyaltyProgram.getTotalSpent().add(amount);
         loyaltyProgram.setTotalSpent(newTotalSpent);
 
-        // Используем конфигурируемый курс
         int pointsPerHundred = properties.getLoyalty().getPointsPer100Dollars();
         int pointsToAdd = amount.divide(BigDecimal.valueOf(100)).intValue() * pointsPerHundred;
 

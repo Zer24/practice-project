@@ -42,7 +42,7 @@ public class User {
     private LocalDateTime createdAt;
 
     public User(String username, String email, String passwordHash, Role role) {
-        this.userId = UUID.randomUUID();  // Генерируем UUID
+        this.userId = UUID.randomUUID();
         this.username = username;
         this.email = email;
         this.passwordHash = passwordHash;

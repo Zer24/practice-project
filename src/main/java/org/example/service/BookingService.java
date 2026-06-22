@@ -8,11 +8,14 @@ import org.example.domain.Room;
 import org.example.dto.BookingCreateDto;
 import org.example.dto.BookingResponseDto;
 import org.example.dto.BookingUpdateDto;
+import org.example.dto.RoomResponseDto;
 import org.example.mapper.BookingMapper;
 import org.example.repository.BookingRepository;
 import org.example.repository.LoyaltyProgramRepository;
 import org.example.repository.RoomRepository;
 import org.example.domain.discountStrategy.DiscountContext;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -35,6 +38,7 @@ public class BookingService {
     private final RoomRepository roomRepository;
     private final LoyaltyProgramRepository loyaltyProgramRepository;
     private final DiscountContext discountContext;
+    private final RoomService roomService;
 
     @Transactional
     public BookingResponseDto createBooking(@Valid BookingCreateDto dto) {
@@ -85,7 +89,6 @@ public class BookingService {
 
             return totalPrice.subtract(discount);
         } catch (Exception e) {
-            // Если что-то пошло не так, возвращаем полную цену
             return totalPrice;
         }
     }
@@ -105,7 +108,6 @@ public class BookingService {
                 loyaltyProgramRepository.save(loyaltyProgram);
             }
         } catch (Exception e) {
-            // Логируем ошибку, но не прерываем создание бронирования
             System.err.println("Failed to update loyalty program: " + e.getMessage());
         }
     }
@@ -137,7 +139,6 @@ public class BookingService {
             throw new RuntimeException("Cannot update deleted booking");
         }
 
-        // Обновляем только те поля, которые были переданы
         if (dto.checkInDate() != null) {
             booking.setCheckInDate(dto.checkInDate());
         }
@@ -150,7 +151,6 @@ public class BookingService {
             booking.setStatus(dto.status());
         }
 
-        // Если изменились даты, пересчитываем цену
         if (dto.checkInDate() != null || dto.checkOutDate() != null) {
             Room room = roomRepository.findByRoomId(booking.getRoomId())
                     .orElseThrow(() -> new RuntimeException("Room not found"));
@@ -212,6 +212,19 @@ public class BookingService {
                 .stream()
                 .map(bookingMapper::toDto)
                 .collect(Collectors.toList());
+    }
+    public Page<BookingResponseDto> getBookingsByUser(UUID userId, Pageable pageable) {
+        return bookingRepository.findByUserIdAndIsDeletedFalse(userId, pageable)
+                .map(bookingMapper::toDto);
+    }
+
+    public Page<BookingResponseDto> getBookingsByHotel(UUID hotelId, Pageable pageable) {
+        List<UUID> roomIds = roomService.getRoomsByHotel(hotelId).stream()
+                .map(RoomResponseDto::roomId)
+                .collect(Collectors.toList());
+
+        return bookingRepository.findByRoomIdInAndIsDeletedFalse(roomIds, pageable)
+                .map(bookingMapper::toDto);
     }
 
     public List<BookingResponseDto> getBookingsByStatus(BookingStatus status) {

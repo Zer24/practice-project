@@ -3,6 +3,8 @@ package org.example.service;
 import org.example.domain.enums.AuditAction;
 import org.example.domain.AuditLog;
 import org.example.repository.AuditLogRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,6 +70,13 @@ public class AuditService {
         auditLogRepository.save(log);
     }
 
+    public Page<AuditLog> getAllAuditLogs(Pageable pageable) {
+        return auditLogRepository.findAll(pageable);
+    }
+
+    public Page<AuditLog> getAuditLogsByAction(AuditAction action, Pageable pageable) {
+        return auditLogRepository.findByAction(action, pageable);
+    }
     public List<AuditLog> getAuditLogsByAction(AuditAction action) {
         return auditLogRepository.findByAction(action);
     }

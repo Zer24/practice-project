@@ -1,4 +1,3 @@
-// RoomUpdateDto.java
 package org.example.dto;
 
 import jakarta.validation.constraints.Min;

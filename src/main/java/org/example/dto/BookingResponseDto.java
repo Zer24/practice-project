@@ -1,4 +1,3 @@
-// BookingResponseDto.java
 package org.example.dto;
 
 import org.example.domain.enums.BookingStatus;

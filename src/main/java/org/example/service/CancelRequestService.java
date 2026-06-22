@@ -10,6 +10,8 @@ import org.example.dto.CancelRequestDto;
 import org.example.dto.CancelRequestUpdateDto;
 import org.example.repository.BookingRepository;
 import org.example.repository.CancelRequestRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -57,6 +59,15 @@ public class CancelRequestService {
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
+    public Page<CancelRequestDto> getAllCancelRequests(Pageable pageable) {
+        return cancelRequestRepository.findAll(pageable)
+                .map(this::convertToDto);
+    }
+
+    public Page<CancelRequestDto> getCancelRequestsByUser(UUID userId, Pageable pageable) {
+        return cancelRequestRepository.findByUserId(userId, pageable)
+                .map(this::convertToDto);
+    }
     public CancelRequestDto getCancelRequest(UUID requestId) {
         CancelRequest cancelRequest = cancelRequestRepository.findByRequestId(requestId)
                 .orElseThrow(() -> new RuntimeException("Cancel request not found"));
@@ -88,7 +99,6 @@ public class CancelRequestService {
         cancelRequest.setProcessedAt(LocalDateTime.now());
         cancelRequestRepository.save(cancelRequest);
 
-        // Если запрос одобрен, отменяем бронирование
         if (dto.status() == CancelRequestStatus.APPROVED) {
             Booking booking = bookingRepository.findByBookingId(cancelRequest.getBookingId())
                     .orElseThrow(() -> new RuntimeException("Booking not found"));

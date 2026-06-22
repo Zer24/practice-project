@@ -1,4 +1,3 @@
-// UserResponseDto.java
 package org.example.dto;
 
 import org.example.domain.enums.Role;

@@ -1,6 +1,8 @@
 package org.example.repository;
 
 import org.example.domain.Hotel;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -14,6 +16,13 @@ public interface HotelRepository extends MongoRepository<Hotel, String> {
 
     Optional<Hotel> findByHotelId(UUID hotelId);
 
+    Page<Hotel> findByIsDeletedFalse(Pageable pageable);
+
+    Page<Hotel> findByManagerIdAndIsDeletedFalse(UUID managerId, Pageable pageable);
+
+    Page<Hotel> findByCityAndIsDeletedFalse(String city, Pageable pageable);
+
+    Page<Hotel> findByCountryAndIsDeletedFalse(String country, Pageable pageable);
     List<Hotel> findByIsDeletedFalse();
 
     List<Hotel> findByManagerIdAndIsDeletedFalse(UUID managerId);
