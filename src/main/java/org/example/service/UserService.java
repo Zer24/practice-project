@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -136,8 +137,18 @@ public class UserService {
 
     @Transactional
     public UserResponseDto authenticate(String username, String password) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user;
+        Optional<User> usernameUser = userRepository.findByUsername(username);
+        if(usernameUser.isPresent()){
+            user = usernameUser.get();
+        }else{
+            Optional<User> emailUser = userRepository.findByEmail(username);
+            if(emailUser.isPresent()){
+                user = emailUser.get();
+            }else{
+                throw new RuntimeException("Пользователь не найден!");
+            }
+        }
 
         if (user.isDeleted()) {
             throw new RuntimeException("Account is deleted");

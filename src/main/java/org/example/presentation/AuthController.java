@@ -34,22 +34,24 @@ public class AuthController implements CommandLineRunner {
 
     @Override
     public void run(String ...args) {
-        System.out.println("═══════════════════════════════════════");
-        System.out.println("     ДОБРО ПОЖАЛОВАТЬ В HOTEL BOOKING SYSTEM");
-        System.out.println("═══════════════════════════════════════");
+        while(true) {
+            System.out.println("═══════════════════════════════════════");
+            System.out.println("     ДОБРО ПОЖАЛОВАТЬ В HOTEL BOOKING SYSTEM");
+            System.out.println("═══════════════════════════════════════");
 
-        while (currentUser == null) {
-            try {
-                showAuthMenu();
-            } catch (RuntimeException e) {
-                System.out.println("❌ Ошибка: " + e.getMessage());
+            while (currentUser == null) {
+                try {
+                    showAuthMenu();
+                } catch (RuntimeException e) {
+                    System.out.println("❌ Ошибка: " + e.getMessage());
+                }
             }
+
+            System.out.println("\n✅ Добро пожаловать, " + currentUser.username() + "!");
+            System.out.println("Ваша роль: " + currentUser.role());
+
+            redirectToRoleController();
         }
-
-        System.out.println("\n✅ Добро пожаловать, " + currentUser.username() + "!");
-        System.out.println("Ваша роль: " + currentUser.role());
-
-        redirectToRoleController();
     }
 
     private void showAuthMenu() {
