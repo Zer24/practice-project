@@ -1,7 +1,8 @@
+// RoomRepository.java
 package org.example.repository;
 
-import org.example.domain.Room;
 import org.bson.types.ObjectId;
+import org.example.domain.Room;
 import org.example.domain.enums.RoomType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,14 +15,16 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface RoomRepository extends MongoRepository<Room, ObjectId> {
+public interface RoomRepository extends MongoRepository<Room, ObjectId>, RoomRepositoryCustom {
 
     Optional<Room> findByRoomId(UUID roomId);
+
+    // Базовые методы
     Page<Room> findByHotelIdAndIsDeletedFalse(UUID hotelId, Pageable pageable);
+    List<Room> findByHotelIdAndIsDeletedFalse(UUID hotelId);
 
     List<Room> findByHotelId(UUID hotelId);
-
-    List<Room> findByHotelIdAndIsDeletedFalse(UUID hotelId);
+    Page<Room> findByHotelId(UUID hotelId, Pageable pageable);
 
     List<Room> findByIsDeletedFalse();
 
@@ -36,4 +39,8 @@ public interface RoomRepository extends MongoRepository<Room, ObjectId> {
 
     @Query("{ 'hotelId': ?0, 'isDeleted': false }")
     List<Room> findActiveByHotelId(UUID hotelId);
+
+    // Кастомный метод для поиска доступных комнат с фильтрацией по датам
+    @Query(value = "{ 'hotelId': ?0, 'isDeleted': false }")
+    List<Room> findAvailableRoomsByHotelId(UUID hotelId);
 }

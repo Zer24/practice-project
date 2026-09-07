@@ -12,27 +12,35 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface HotelRepository extends MongoRepository<Hotel, String> {
+public interface HotelRepository extends MongoRepository<Hotel, String>, HotelRepositoryCustom {
+
+    // Базовые методы для работы с отелями
 
     Optional<Hotel> findByHotelId(UUID hotelId);
 
-    Page<Hotel> findByIsDeletedFalse(Pageable pageable);
-
-    Page<Hotel> findByManagerIdAndIsDeletedFalse(UUID managerId, Pageable pageable);
-
-    Page<Hotel> findByCityAndIsDeletedFalse(String city, Pageable pageable);
-
-    Page<Hotel> findByCountryAndIsDeletedFalse(String country, Pageable pageable);
+    @Query("{ 'isDeleted': false }")
     List<Hotel> findByIsDeletedFalse();
 
-    List<Hotel> findByManagerIdAndIsDeletedFalse(UUID managerId);
+    @Query("{ 'isDeleted': false }")
+    Page<Hotel> findByIsDeletedFalse(Pageable pageable);
 
+    @Query("{ 'city': ?0, 'isDeleted': false }")
     List<Hotel> findByCityAndIsDeletedFalse(String city);
 
+    @Query("{ 'city': ?0, 'isDeleted': false }")
+    Page<Hotel> findByCityAndIsDeletedFalse(String city, Pageable pageable);
+
+    @Query("{ 'country': ?0, 'isDeleted': false }")
     List<Hotel> findByCountryAndIsDeletedFalse(String country);
 
-    boolean existsByHotelIdAndIsDeletedFalse(UUID hotelId);
+    @Query("{ 'country': ?0, 'isDeleted': false }")
+    Page<Hotel> findByCountryAndIsDeletedFalse(String country, Pageable pageable);
 
-    @Query("{ 'isDeleted': false }")
-    List<Hotel> findAllActive();
+    @Query("{ 'managerId': ?0, 'isDeleted': false }")
+    List<Hotel> findByManagerIdAndIsDeletedFalse(UUID managerId);
+
+    @Query("{ 'managerId': ?0, 'isDeleted': false }")
+    Page<Hotel> findByManagerIdAndIsDeletedFalse(UUID managerId, Pageable pageable);
+
+    boolean existsByHotelIdAndIsDeletedFalse(UUID hotelId);
 }

@@ -14,12 +14,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 @Slf4j
 @Order(1)
-public class AuthController implements CommandLineRunner {
+public class AuthControllerC implements CommandLineRunner {
 
     private final ConsoleScanner scanner;
-    private final CustomerController customerController;
-    private final ManagerController managerController;
-    private final AdminController adminController;
+    private final CustomerControllerC customerControllerC;
+    private final ManagerControllerC managerControllerC;
+    private final AdminControllerC adminControllerC;
     private final UserService userService;
 
     private UserResponseDto currentUser;
@@ -34,6 +34,7 @@ public class AuthController implements CommandLineRunner {
 
     @Override
     public void run(String ...args) {
+        initAdminUser();
         while(true) {
             System.out.println("═══════════════════════════════════════");
             System.out.println("     ДОБРО ПОЖАЛОВАТЬ В HOTEL BOOKING SYSTEM");
@@ -51,6 +52,7 @@ public class AuthController implements CommandLineRunner {
             System.out.println("Ваша роль: " + currentUser.role());
 
             redirectToRoleController();
+            currentUser=null;
         }
     }
 
@@ -107,9 +109,15 @@ public class AuthController implements CommandLineRunner {
 
     private void redirectToRoleController() {
         switch (currentUser.role()) {
-            case CUSTOMER -> customerController.start(currentUser);
-            case MANAGER -> managerController.start(currentUser);
-            case ADMIN -> adminController.start(currentUser);
+            case CUSTOMER -> customerControllerC.start(currentUser);
+            case MANAGER -> managerControllerC.start(currentUser);
+            case ADMIN -> adminControllerC.start(currentUser);
+        }
+    }
+    private void initAdminUser() {
+        if (!userService.existsByUsername("admin")) {
+            userService.createUser(new UserCreateDto("admin", "admin@admin.com", "1234", Role.ADMIN));
+            System.out.println("✅ Создан администратор по умолчанию (admin/1234)");
         }
     }
 }

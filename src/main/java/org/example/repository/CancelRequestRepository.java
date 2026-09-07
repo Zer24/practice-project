@@ -20,6 +20,7 @@ public interface CancelRequestRepository extends MongoRepository<CancelRequest, 
     List<CancelRequest> findByUserId(UUID userId);
 
     List<CancelRequest> findByStatus(CancelRequestStatus status);
+    Page<CancelRequest> findByStatus(CancelRequestStatus status, Pageable pageable);
     Page<CancelRequest> findByUserId(UUID userId, Pageable pageable);
 
     List<CancelRequest> findByBookingId(UUID bookingId);
@@ -28,4 +29,10 @@ public interface CancelRequestRepository extends MongoRepository<CancelRequest, 
     List<CancelRequest> findPendingRequests(CancelRequestStatus status);
 
     boolean existsByBookingIdAndStatus(UUID bookingId, CancelRequestStatus status);
+    @Query("{ $and: [ " +
+            "{ $or: [ { 'userId': ?0 }, { 'userId': { $exists': true } } ] }, " +
+            "{ $or: [ { 'status': ?1 }, { 'status': { $exists': true } } ] }, " +
+            "{ $or: [ { 'bookingId': ?2 }, { 'bookingId': { $exists': true } } ] } " +
+            "] }")
+    Page<CancelRequest> findCancelRequestsByFilters(UUID userId, String status, UUID bookingId, Pageable pageable);
 }

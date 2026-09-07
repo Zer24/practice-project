@@ -1,25 +1,28 @@
 package org.example.service;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.example.domain.Booking;
-import org.example.domain.enums.BookingStatus;
 import org.example.domain.LoyaltyProgram;
 import org.example.domain.Room;
+import org.example.domain.User;
+import org.example.domain.discountStrategy.DiscountContext;
+import org.example.domain.enums.BookingStatus;
+import org.example.domain.enums.Role;
 import org.example.dto.BookingCreateDto;
 import org.example.dto.BookingResponseDto;
+import org.example.dto.BookingStatusUpdateDto;
 import org.example.dto.BookingUpdateDto;
-import org.example.dto.RoomResponseDto;
 import org.example.mapper.BookingMapper;
 import org.example.repository.BookingRepository;
 import org.example.repository.LoyaltyProgramRepository;
 import org.example.repository.RoomRepository;
-import org.example.domain.discountStrategy.DiscountContext;
+import org.example.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
-import jakarta.validation.Valid;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -38,7 +41,7 @@ public class BookingService {
     private final RoomRepository roomRepository;
     private final LoyaltyProgramRepository loyaltyProgramRepository;
     private final DiscountContext discountContext;
-    private final RoomService roomService;
+    private final UserRepository userRepository;
 
     @Transactional
     public BookingResponseDto createBooking(@Valid BookingCreateDto dto) {
@@ -71,6 +74,7 @@ public class BookingService {
         return bookingMapper.toDto(saved);
     }
 
+    /// Это вообще функция другого сервиса
     @Transactional
     private BigDecimal applyLoyaltyDiscount(UUID userId, BigDecimal totalPrice) {
         try {
@@ -119,7 +123,7 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
-    public BookingResponseDto getBooking(UUID bookingId) {
+    public BookingResponseDto getBookingById(UUID bookingId) {
         Booking booking = bookingRepository.findByBookingId(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
 
@@ -128,6 +132,44 @@ public class BookingService {
         }
 
         return bookingMapper.toDto(booking);
+    }
+    public BookingResponseDto getBookingById(UUID bookingId, UUID userId) {
+        Booking booking = bookingRepository.findByBookingId(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
+
+        User user =userRepository.findByUserId(userId).orElseThrow();
+
+        if (booking.isDeleted()) {
+            throw new RuntimeException("Booking is deleted");
+        }
+
+        // Проверяем, что пользователь имеет право просматривать это бронирование
+        if (user.getRole() == Role.CUSTOMER && !booking.getUserId().equals(userId)) {
+            throw new RuntimeException("You don't have permission to view this booking");
+        }
+        /// Менеджеры могут проверять
+
+        return bookingMapper.toDto(booking);
+    }
+    public Page<BookingResponseDto> getBookings(UUID userId, String status, String fromDate, String toDate, Pageable pageable) {
+        LocalDate checkInFrom = null;
+        LocalDate checkOutTo = null;
+
+        if (fromDate != null && !fromDate.isEmpty()) {
+            checkInFrom = LocalDate.parse(fromDate);
+        }
+        if (toDate != null && !toDate.isEmpty()) {
+            checkOutTo = LocalDate.parse(toDate);
+        }
+
+        if (status != null && !status.isEmpty()) {
+            BookingStatus bookingStatus = BookingStatus.valueOf(status.toUpperCase());
+            return bookingRepository.findActiveBookingsByFilters(userId, null, bookingStatus.name(), checkInFrom, checkOutTo, pageable)
+                    .map(bookingMapper::toDto);
+        } else {
+            return bookingRepository.findByUserIdAndIsDeletedFalse(userId, pageable)
+                    .map(bookingMapper::toDto);
+        }
     }
 
     @Transactional
@@ -206,6 +248,38 @@ public class BookingService {
         booking.setDeleted(true);
         bookingRepository.save(booking);
     }
+    @Transactional
+    public void updateBookingStatus(UUID bookingId, BookingStatusUpdateDto dto, UUID userId) {
+        Booking booking = bookingRepository.findByBookingId(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
+        User user = userRepository.findByUserId(userId).orElseThrow();
+
+        // Проверяем, что пользователь имеет право обновлять это бронирование
+        if (user.getRole() != Role.ADMIN) {
+            if (user.getRole() == Role.MANAGER) {
+                if (!(dto.status() == BookingStatus.CONFIRMED || dto.status() == BookingStatus.COMPLETED)) {
+                    throw new RuntimeException("Manager can only confirm or complete booking");
+                }
+            } else if (user.getRole() == Role.CUSTOMER) {
+                if (dto.status() != BookingStatus.CANCELLED) {
+                    throw new RuntimeException("Customer can only cancel booking");
+                }
+            }
+        }
+
+        if (booking.isDeleted()) {
+            throw new RuntimeException("Cannot update deleted booking");
+        }
+
+        // Обновляем статус
+        if (dto.status() != null) {
+            booking.setStatus(dto.status());
+        } else {
+            throw new RuntimeException("Status cannot be null");
+        }
+
+        bookingRepository.save(booking);
+    }
 
     public List<BookingResponseDto> getBookingsByUser(UUID userId) {
         return bookingRepository.findByUserIdAndIsDeletedFalse(userId)
@@ -219,8 +293,9 @@ public class BookingService {
     }
 
     public Page<BookingResponseDto> getBookingsByHotel(UUID hotelId, Pageable pageable) {
-        List<UUID> roomIds = roomService.getRoomsByHotel(hotelId).stream()
-                .map(RoomResponseDto::roomId)
+        List<UUID> roomIds = roomRepository.findByHotelId(hotelId)
+                .stream()
+                .map(Room::getRoomId)
                 .collect(Collectors.toList());
 
         return bookingRepository.findByRoomIdInAndIsDeletedFalse(roomIds, pageable)

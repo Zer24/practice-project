@@ -2,6 +2,7 @@ package org.example.service;
 
 import org.example.domain.enums.AuditAction;
 import org.example.domain.AuditLog;
+import org.example.dto.AuditLogDto;
 import org.example.repository.AuditLogRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -70,10 +71,6 @@ public class AuditService {
         auditLogRepository.save(log);
     }
 
-    public Page<AuditLog> getAllAuditLogs(Pageable pageable) {
-        return auditLogRepository.findAll(pageable);
-    }
-
     public Page<AuditLog> getAuditLogsByAction(AuditAction action, Pageable pageable) {
         return auditLogRepository.findByAction(action, pageable);
     }
@@ -93,7 +90,33 @@ public class AuditService {
         return auditLogRepository.findByDateRange(start, end);
     }
 
-    public List<AuditLog> getAllAuditLogs() {
-        return auditLogRepository.findAll();
+    public Page<AuditLogDto> getAllAuditLogs(Pageable pageable) {
+        return auditLogRepository.findAll(pageable)
+                .map(this::toDto);
+    }
+
+    public Page<AuditLogDto> getAuditLogsByAction(String actionStr, Pageable pageable) {
+        AuditAction action = AuditAction.valueOf(actionStr);
+        return auditLogRepository.findByAction(action, pageable)
+                .map(this::toDto);
+    }
+
+    public Page<AuditLogDto> getAuditLogsByUser(UUID userId, Pageable pageable) {
+        return auditLogRepository.findByPerformedBy(userId, pageable)
+                .map(this::toDto);
+    }
+
+    private AuditLogDto toDto(AuditLog log) {
+        return new AuditLogDto(
+                log.getAuditId(),
+                log.getAction().name(),
+                log.getEntityType(),
+                log.getEntityId(),
+                log.getPerformedBy(),
+                log.getPerformedAt(),
+                log.getOldValue(),
+                log.getNewValue(),
+                log.getDetails()
+        );
     }
 }

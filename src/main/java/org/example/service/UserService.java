@@ -6,6 +6,7 @@ import org.example.domain.User;
 import org.example.domain.enums.Role;
 import org.example.dto.UserCreateDto;
 import org.example.dto.UserResponseDto;
+import org.example.dto.UserUpdateDto;
 import org.example.mapper.UserMapper;
 import org.example.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -52,7 +53,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponseDto updateUser(UUID userId, UserCreateDto request, UUID performedBy) {
+    public UserResponseDto updateUser(UUID userId, UserUpdateDto request, UUID performedBy) {
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
@@ -169,6 +170,10 @@ public class UserService {
     }
     public Page<UserResponseDto> getAllUsers(Pageable pageable) {
         return userRepository.findByIsDeletedFalse(pageable)
+                .map(UserResponseDto::new);
+    }
+    public Page<UserResponseDto> getAllUsers(String role, String username, String email, Pageable pageable) {
+        return userRepository.findActiveUsersByFilters(role, username, email, pageable)
                 .map(UserResponseDto::new);
     }
 

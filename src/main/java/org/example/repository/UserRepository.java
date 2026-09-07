@@ -25,4 +25,10 @@ public interface UserRepository extends MongoRepository<User, ObjectId> {
 
     @Query("{ 'isDeleted': false }")
     List<User> findAllActive();
+    @Query("{ 'isDeleted': false, $and: [ " +
+            "{ $or: [ { 'role': ?0 }, { 'role': { $exists: true } } ] }, " +
+            "{ $or: [ { 'username': ?1 }, { 'username': { $exists: true } } ] }, " +
+            "{ $or: [ { 'email': ?2 }, { 'email': { $exists: true } } ] } " +
+            "] }")
+    Page<User> findActiveUsersByFilters(String role, String username, String email, Pageable pageable);
 }

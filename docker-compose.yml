@@ -8,28 +8,24 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
-      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     environment:
-      - MONGO_INITDB_DATABASE=${MONGODB_DATABASE:-hotel_booking_db}
       - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGODB_DATABASE:-hotel_booking_db}
     networks:
       - hotel-network
-    restart: unless-stopped
 
   app:
     build: .
     container_name: hotel-booking-app
-    stdin_open: true
-    tty: true
+    ports:
+      - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATA_MONGODB_HOST=${MONGODB_HOST:-mongodb}
-      - SPRING_DATA_MONGODB_PORT=${MONGODB_PORT:-27017}
-      - SPRING_DATA_MONGODB_DATABASE=${MONGODB_DATABASE:-hotel_booking_db}
-      - SPRING_DATA_MONGODB_USERNAME=${MONGODB_USERNAME}
-      - SPRING_DATA_MONGODB_PASSWORD=${MONGODB_PASSWORD}
-      - SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE=${MONGODB_AUTH_DATABASE:-hotel_booking_db}
+      - SPRING_PROFILES_ACTIVE=docker  # Указываем профиль
+      - MONGODB_HOST=mongodb           # Передаем в приложение
+      - MONGODB_USERNAME=${MONGODB_USERNAME}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
       - BCRYPT_STRENGTH=${BCRYPT_STRENGTH:-10}
     networks:
       - hotel-network
@@ -41,4 +37,3 @@ volumes:
 
 networks:
   hotel-network:
-    driver: bridge

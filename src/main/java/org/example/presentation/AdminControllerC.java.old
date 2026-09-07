@@ -25,7 +25,7 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class AdminController {
+public class AdminControllerC {
 
     private final ConsoleScanner scanner;
     private final HotelService hotelService;
@@ -610,7 +610,7 @@ public class AdminController {
 
         while (hasMorePages) {
             Pageable pageable = PageRequest.of(page, size, Sort.by("performedAt").descending());
-            Page<AuditLog> logPage = auditService.getAllAuditLogs(pageable);
+            Page<AuditLogDto> logPage = auditService.getAllAuditLogs(pageable);
 
             if (logPage.isEmpty()) {
                 if (page == 0) {
@@ -625,18 +625,18 @@ public class AdminController {
                     logPage.getTotalElements(), logPage.getNumberOfElements());
             System.out.println("---");
 
-            for (AuditLog log : logPage.getContent()) {
-                System.out.printf("📝 %s [%s]%n", log.getAction(), log.getPerformedAt());
-                System.out.printf("   Сущность: %s (ID: %s)%n", log.getEntityType(), log.getEntityId());
-                System.out.printf("   Кто выполнил: %s%n", log.getPerformedBy());
-                if (log.getOldValue() != null) {
-                    System.out.printf("   Было: %s%n", log.getOldValue());
+            for (AuditLogDto log : logPage.getContent()) {
+                System.out.printf("📝 %s [%s]%n", log.action(), log.performedAt());
+                System.out.printf("   Сущность: %s (ID: %s)%n", log.entityType(), log.entityId());
+                System.out.printf("   Кто выполнил: %s%n", log.performedBy());
+                if (log.oldValue() != null) {
+                    System.out.printf("   Было: %s%n", log.oldValue());
                 }
-                if (log.getNewValue() != null) {
-                    System.out.printf("   Стало: %s%n", log.getNewValue());
+                if (log.newValue() != null) {
+                    System.out.printf("   Стало: %s%n", log.newValue());
                 }
-                if (log.getDetails() != null) {
-                    System.out.printf("   Детали: %s%n", log.getDetails());
+                if (log.details() != null) {
+                    System.out.printf("   Детали: %s%n", log.details());
                 }
                 System.out.println("   ---");
             }

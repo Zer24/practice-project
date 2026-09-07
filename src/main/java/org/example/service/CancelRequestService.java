@@ -121,4 +121,8 @@ public class CancelRequestService {
                 request.getProcessedBy()
         );
     }
+    public Page<CancelRequestDto> getPendingCancelRequests(Pageable pageable) {
+        return cancelRequestRepository.findByStatus(CancelRequestStatus.PENDING, pageable)
+                .map(this::convertToDto);
+    }
 }

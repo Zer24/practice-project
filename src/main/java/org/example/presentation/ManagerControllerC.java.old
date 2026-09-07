@@ -21,7 +21,7 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ManagerController {
+public class ManagerControllerC {
 
     private final ConsoleScanner scanner;
     private final HotelService hotelService;
