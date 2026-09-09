@@ -28,7 +28,7 @@ public class AdminController {
             @RequestParam(required = false) String role,
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String email,
-            @PageableDefault(size = 10) Pageable pageable) {
+            @PageableDefault() Pageable pageable) {
         return ResponseEntity.ok(userService.getAllUsers(role, username, email, pageable));
     }
 
@@ -46,7 +46,7 @@ public class AdminController {
         }
     }
 
-    @DeleteMapping("/users/{userId}/soft")
+    @DeleteMapping("/users/{userId}")
     public ResponseEntity<Void> softDeleteUser(@PathVariable UUID userId) {
         userService.softDeleteUser(userId, securityUtils.getCurrentUserId());
         return ResponseEntity.noContent().build();
@@ -58,9 +58,9 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/users/{userId}")
-    public ResponseEntity<Void> hardDeleteUser(@PathVariable UUID userId) {
-        userService.hardDeleteUser(userId);
-        return ResponseEntity.noContent().build();
-    }
+//    @DeleteMapping("/users/{userId}")
+//    public ResponseEntity<Void> hardDeleteUser(@PathVariable UUID userId) {
+//        userService.hardDeleteUser(userId);
+//        return ResponseEntity.noContent().build();
+//    }
 }

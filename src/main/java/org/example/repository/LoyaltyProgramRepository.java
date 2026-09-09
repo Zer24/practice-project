@@ -19,10 +19,6 @@ public interface LoyaltyProgramRepository extends MongoRepository<LoyaltyProgram
 
     List<LoyaltyProgram> findByTier(LoyaltyTier tier);
 
-    List<LoyaltyProgram> findByTotalPointsGreaterThanEqual(Integer points);
-
     boolean existsByUserId(UUID userId);
-
-
     List<LoyaltyProgram> findAll();
 }

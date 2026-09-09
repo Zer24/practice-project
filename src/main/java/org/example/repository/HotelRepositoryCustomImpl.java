@@ -32,16 +32,12 @@ public class HotelRepositoryCustomImpl implements HotelRepositoryCustom {
             Double maxRating,
             Pageable pageable) {
 
-        // Строим динамический запрос
         Query query = buildDynamicQuery(city, country, minRating, maxRating);
 
-        // Применяем пагинацию и сортировку
         query.with(pageable);
 
-        // Выполняем запрос для получения данных
         List<Hotel> hotels = mongoTemplate.find(query, Hotel.class);
 
-        // Получаем общее количество записей без пагинации
         Query countQuery = buildDynamicQuery(city, country, minRating, maxRating);
         long total = mongoTemplate.count(countQuery, Hotel.class);
 
@@ -61,33 +57,24 @@ public class HotelRepositoryCustomImpl implements HotelRepositoryCustom {
         Query query = buildDynamicQuery(city, country, minRating, maxRating);
         return mongoTemplate.find(query, Hotel.class);
     }
-
-    /**
-     * Строит динамический MongoDB запрос на основе переданных фильтров
-     */
     private Query buildDynamicQuery(String city, String country, Double minRating, Double maxRating) {
         Query query = new Query();
 
-        // Список критериев для AND комбинации
         List<Criteria> andCriteria = new ArrayList<>();
 
-        // Базовый критерий - только не удаленные отели
         andCriteria.add(Criteria.where("isDeleted").is(false));
 
-        // Фильтр по городу (регистронезависимый поиск)
         if (StringUtils.hasText(city)) {
             city = URLDecoder.decode(city, StandardCharsets.UTF_8);
             andCriteria.add(Criteria.where("city").regex(city.trim(), "i"));
 //            andCriteria.add(Criteria.where("city").regex(Pattern.quote(city.trim()), "i"));
 //            andCriteria.add(Criteria.where("city")
 //                    .regex("^" + city.trim() + "$", "i")); // точное совпадение без учета регистра
-            // Или для частичного совпадения:
             // .regex(city.trim(), "i")
 //            Pattern pattern = Pattern.compile(Pattern.quote(city.trim()), Pattern.CASE_INSENSITIVE);
 //             andCriteria.add(Criteria.where("city").regex(pattern));
         }
 
-        // Фильтр по стране (регистронезависимый поиск)
         if (StringUtils.hasText(country)) {
             country = URLDecoder.decode(country, StandardCharsets.UTF_8);
             andCriteria.add(Criteria.where("country").regex("^" + country.trim() + "$", "i"));
@@ -98,21 +85,16 @@ public class HotelRepositoryCustomImpl implements HotelRepositoryCustom {
 //            andCriteria.add(Criteria.where("country").regex(pattern));
         }
 
-        // Фильтр по рейтингу
         if (minRating != null && maxRating != null) {
-            // Если указаны оба - диапазон
             andCriteria.add(Criteria.where("rating")
                     .gte(minRating)
                     .lte(maxRating));
         } else if (minRating != null) {
-            // Только минимальный рейтинг
             andCriteria.add(Criteria.where("rating").gte(minRating));
         } else if (maxRating != null) {
-            // Только максимальный рейтинг
             andCriteria.add(Criteria.where("rating").lte(maxRating));
         }
 
-        // Объединяем все критерии через AND
         if (!andCriteria.isEmpty()) {
             query.addCriteria(new Criteria().andOperator(
                     andCriteria.toArray(new Criteria[0])

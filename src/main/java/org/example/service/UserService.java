@@ -16,10 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Validated
@@ -122,21 +120,6 @@ public class UserService {
     }
 
     @Transactional
-    public void hardDeleteUser(UUID userId) {
-        User user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        userRepository.delete(user);
-    }
-
-    public boolean existsByUsername(String username) {
-        return userRepository.existsByUsernameAndIsDeletedFalse(username);
-    }
-
-    public boolean existsByEmail(String email) {
-        return userRepository.existsByEmailAndIsDeletedFalse(email);
-    }
-
-    @Transactional
     public UserResponseDto authenticate(String username, String password) {
         User user;
         Optional<User> usernameUser = userRepository.findByUsername(username);
@@ -162,16 +145,6 @@ public class UserService {
         return new UserResponseDto(user);
     }
 
-    public List<UserResponseDto> getAllUsers() {
-        return userRepository.findAllActive()
-                .stream()
-                .map(UserResponseDto::new)
-                .collect(Collectors.toList());
-    }
-    public Page<UserResponseDto> getAllUsers(Pageable pageable) {
-        return userRepository.findByIsDeletedFalse(pageable)
-                .map(UserResponseDto::new);
-    }
     public Page<UserResponseDto> getAllUsers(String role, String username, String email, Pageable pageable) {
         return userRepository.findActiveUsersByFilters(role, username, email, pageable)
                 .map(UserResponseDto::new);

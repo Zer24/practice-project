@@ -27,7 +27,6 @@ public class BookingController {
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<BookingResponseDto> createBooking(@Valid @RequestBody BookingCreateDto dto) {
-        /// DTO добавить pointsToSpend?
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(bookingService.createBooking(dto));
     }
@@ -37,23 +36,32 @@ public class BookingController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String fromDate,
             @RequestParam(required = false) String toDate,
-            @PageableDefault(size = 10) Pageable pageable) {
+            @PageableDefault() Pageable pageable) {
         UUID currentUserId = securityUtils.getCurrentUserId();
         return ResponseEntity.ok(bookingService.getBookings(currentUserId, status, fromDate, toDate, pageable));
     }
 
     @GetMapping("/{id}")
+//    @PreAuthorize("@bookingService.canViewBooking(#id)")
     public ResponseEntity<BookingResponseDto> getBookingById(@PathVariable UUID id) {
         UUID currentUserId = securityUtils.getCurrentUserId();
         return ResponseEntity.ok(bookingService.getBookingById(id, currentUserId));
     }
 
-    @PatchMapping("/{id}")
+    @PutMapping("/{id}")
+//    @PreAuthorize("@bookingService.canUpdateBookingStatus(#id, #dto)")
     public ResponseEntity<Void> updateBookingStatus(
             @PathVariable UUID id,
             @Valid @RequestBody BookingStatusUpdateDto dto) {
         UUID currentUserId = securityUtils.getCurrentUserId();
         bookingService.updateBookingStatus(id, dto, currentUserId); //Проверка доступа в сервисе
+        return ResponseEntity.noContent().build();
+    }
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> softDeleteBooking(@PathVariable UUID id) {
+        UUID currentUserId = securityUtils.getCurrentUserId();
+        bookingService.softDeleteBooking(id, currentUserId);
         return ResponseEntity.noContent().build();
     }
 }

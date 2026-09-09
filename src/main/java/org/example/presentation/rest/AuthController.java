@@ -1,18 +1,17 @@
 package org.example.presentation.rest;
 
 import io.swagger.v3.oas.annotations.Operation;
-import org.example.domain.RefreshToken;
-import org.example.dto.*;
-import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.dto.*;
 import org.example.security.JwtTokenProvider;
 import org.example.service.RefreshTokenService;
 import org.example.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -29,7 +28,6 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserCreateDto dto) {
-        /// Добавить обработку DuplicateKeyException -> 409 Conflict
         UserResponseDto user = userService.createUser(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
@@ -40,7 +38,7 @@ public class AuthController {
     )
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDto> login(@Valid @RequestBody AuthRequestDto request) {
-        UserResponseDto user = userService.authenticate(request.login(), request.password());
+        UserResponseDto user = userService.authenticate(request.login(), request.password()); // удалённый пользователь не может залогиниться по сервису
 
         String accessToken = tokenProvider.generateAccessToken(user);
         String refreshToken = tokenProvider.generateRefreshToken(user);
@@ -66,7 +64,7 @@ public class AuthController {
             throw new RuntimeException("Invalid token type");
         }
 
-        RefreshToken storedToken = refreshTokenService.validateRefreshToken(refreshToken);
+        refreshTokenService.validateRefreshToken(refreshToken);
 
         UUID userId = tokenProvider.getUserIdFromToken(refreshToken);
         UserResponseDto user = userService.getUserById(userId);
@@ -86,7 +84,7 @@ public class AuthController {
             description = "Отзывает refresh токен, делая его недействительным"
     )
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader(value = "Authorization", required = true) String authorization) {
+    public ResponseEntity<Void> logout(@RequestHeader(value = "Authorization") String authorization) {
         String token = authorization.substring(7);
 
         if (tokenProvider.validateToken(token) && "refresh".equals(tokenProvider.getTokenType(token))) {

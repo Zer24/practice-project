@@ -1,4 +1,3 @@
-// RoomController.java
 package org.example.presentation.rest;
 
 import jakarta.validation.Valid;
@@ -37,7 +36,7 @@ public class RoomController {
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(required = false) String amenities,
             @RequestParam(required = false) String sort,
-            @PageableDefault(size = 10) Pageable pageable) {
+            @PageableDefault() Pageable pageable) {
         return ResponseEntity.ok(roomService.getRoomsByHotel(
                 hotelId, roomType, capacity, minPrice, maxPrice, amenities, sort, pageable));
     }

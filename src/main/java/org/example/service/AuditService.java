@@ -1,7 +1,7 @@
 package org.example.service;
 
-import org.example.domain.enums.AuditAction;
 import org.example.domain.AuditLog;
+import org.example.domain.enums.AuditAction;
 import org.example.dto.AuditLogDto;
 import org.example.repository.AuditLogRepository;
 import org.springframework.data.domain.Page;
@@ -9,7 +9,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -80,25 +79,6 @@ public class AuditService {
 
     public List<AuditLog> getAuditLogsByUser(UUID userId) {
         return auditLogRepository.findByPerformedBy(userId);
-    }
-
-    public List<AuditLog> getAuditLogsByEntity(String entityType, String entityId) {
-        return auditLogRepository.findByEntityTypeAndEntityId(entityType, entityId);
-    }
-
-    public List<AuditLog> getAuditLogsByDateRange(LocalDateTime start, LocalDateTime end) {
-        return auditLogRepository.findByDateRange(start, end);
-    }
-
-    public Page<AuditLogDto> getAllAuditLogs(Pageable pageable) {
-        return auditLogRepository.findAll(pageable)
-                .map(this::toDto);
-    }
-
-    public Page<AuditLogDto> getAuditLogsByAction(String actionStr, Pageable pageable) {
-        AuditAction action = AuditAction.valueOf(actionStr);
-        return auditLogRepository.findByAction(action, pageable)
-                .map(this::toDto);
     }
 
     public Page<AuditLogDto> getAuditLogsByUser(UUID userId, Pageable pageable) {

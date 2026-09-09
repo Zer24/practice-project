@@ -42,13 +42,10 @@ public class RoomRepositoryCustomImpl implements RoomRepositoryCustom {
         Query query = buildDynamicQuery(hotelId, roomType, minCapacity, maxCapacity,
                 minPrice, maxPrice, amenities);
 
-        // Применяем пагинацию и сортировку
         query.with(pageable);
 
-        // Выполняем запрос для получения данных
         List<Room> rooms = mongoTemplate.find(query, Room.class);
 
-        // Получаем общее количество записей без пагинации
         long total = mongoTemplate.count(query, Room.class);
 
         log.debug("Found {} rooms with filters: hotelId={}, roomType={}, minCapacity={}, maxCapacity={}, " +
@@ -85,15 +82,12 @@ public class RoomRepositoryCustomImpl implements RoomRepositoryCustom {
         Query query = new Query();
         List<Criteria> andCriteria = new ArrayList<>();
 
-        // Базовый критерий - только не удаленные комнаты
         andCriteria.add(Criteria.where("isDeleted").is(false));
 
-        // Фильтр по отелю (обязательный)
         if (hotelId != null) {
             andCriteria.add(Criteria.where("hotelId").is(hotelId));
         }
 
-        // Фильтр по типу комнаты
         if (StringUtils.hasText(roomType)) {
             try {
                 roomType = URLDecoder.decode(roomType, StandardCharsets.UTF_8);
@@ -104,7 +98,6 @@ public class RoomRepositoryCustomImpl implements RoomRepositoryCustom {
             }
         }
 
-        // Фильтр по вместимости
         if (minCapacity != null) {
             andCriteria.add(Criteria.where("capacity").gte(minCapacity));
         }
@@ -112,7 +105,6 @@ public class RoomRepositoryCustomImpl implements RoomRepositoryCustom {
             andCriteria.add(Criteria.where("capacity").lte(maxCapacity));
         }
 
-        // Фильтр по цене
         if (minPrice != null) {
             andCriteria.add(Criteria.where("pricePerNight").gte(minPrice));
         }
@@ -120,14 +112,12 @@ public class RoomRepositoryCustomImpl implements RoomRepositoryCustom {
             andCriteria.add(Criteria.where("pricePerNight").lte(maxPrice));
         }
 
-        // Фильтр по удобствам (поиск подстроки в списке)
         if (StringUtils.hasText(amenities)) {
             amenities = URLDecoder.decode(amenities, StandardCharsets.UTF_8);
             andCriteria.add(Criteria.where("amenities")
                     .regex(amenities.trim(), "i"));
         }
 
-        // Объединяем все критерии через AND
         if (!andCriteria.isEmpty()) {
             query.addCriteria(new Criteria().andOperator(
                     andCriteria.toArray(new Criteria[0])

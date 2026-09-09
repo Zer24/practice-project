@@ -21,7 +21,6 @@ public class RefreshTokenService {
 
     @Transactional
     public void saveRefreshToken(UUID userId, String token) {
-        // Удаляем старые токены пользователя
         refreshTokenRepository.deleteByUserId(userId);
 
         LocalDateTime expiryDate = LocalDateTime.now().plusNanos(refreshExpiration * 1_000_000);
