@@ -1,14 +1,12 @@
 package org.example.repository;
 
-import org.example.domain.enums.AuditAction;
 import org.example.domain.AuditLog;
+import org.example.domain.enums.AuditAction;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,10 +18,5 @@ public interface AuditLogRepository extends MongoRepository<AuditLog, String> {
     List<AuditLog> findByAction(AuditAction action);
     Page<AuditLog> findByAction(AuditAction action, Pageable pageable);
 
-    List<AuditLog> findByEntityTypeAndEntityId(String entityType, String entityId);
-
-    @Query("{ 'performedAt': { $gte: ?0, $lte: ?1 } }")
-    List<AuditLog> findByDateRange(LocalDateTime start, LocalDateTime end);
-
-    List<AuditLog> findByActionAndEntityType(AuditAction action, String entityType);
+    Page<AuditLog> findByPerformedBy(UUID performedBy, Pageable pageable);
 }

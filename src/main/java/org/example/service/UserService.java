@@ -6,6 +6,9 @@ import org.example.domain.User;
 import org.example.domain.enums.Role;
 import org.example.dto.UserCreateDto;
 import org.example.dto.UserResponseDto;
+import org.example.dto.UserUpdateDto;
+import org.example.exception.DuplicateException;
+import org.example.exception.InvalidPasswordException;
 import org.example.mapper.UserMapper;
 import org.example.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -15,10 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Validated
@@ -33,10 +34,10 @@ public class UserService {
     @Transactional
     public UserResponseDto createUser(@Valid UserCreateDto dto) {
         if (userRepository.existsByUsernameAndIsDeletedFalse(dto.username())) {
-            throw new RuntimeException("User with username " + dto.username() + " already exists");
+            throw new DuplicateException("User with username " + dto.username() + " already exists");
         }
         if (userRepository.existsByEmailAndIsDeletedFalse(dto.email())) {
-            throw new RuntimeException("User with email " + dto.email() + " already exists");
+            throw new DuplicateException("User with email " + dto.email() + " already exists");
         }
 
         String hashedPassword = passwordEncoder.encode(dto.password());
@@ -52,7 +53,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponseDto updateUser(UUID userId, UserCreateDto request, UUID performedBy) {
+    public UserResponseDto updateUser(UUID userId, UserUpdateDto request, UUID performedBy) {
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
@@ -121,21 +122,6 @@ public class UserService {
     }
 
     @Transactional
-    public void hardDeleteUser(UUID userId) {
-        User user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        userRepository.delete(user);
-    }
-
-    public boolean existsByUsername(String username) {
-        return userRepository.existsByUsernameAndIsDeletedFalse(username);
-    }
-
-    public boolean existsByEmail(String email) {
-        return userRepository.existsByEmailAndIsDeletedFalse(email);
-    }
-
-    @Transactional
     public UserResponseDto authenticate(String username, String password) {
         User user;
         Optional<User> usernameUser = userRepository.findByUsername(username);
@@ -155,20 +141,14 @@ public class UserService {
         }
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Invalid password");
+            throw new InvalidPasswordException("Invalid password");
         }
 
         return new UserResponseDto(user);
     }
 
-    public List<UserResponseDto> getAllUsers() {
-        return userRepository.findAllActive()
-                .stream()
-                .map(UserResponseDto::new)
-                .collect(Collectors.toList());
-    }
-    public Page<UserResponseDto> getAllUsers(Pageable pageable) {
-        return userRepository.findByIsDeletedFalse(pageable)
+    public Page<UserResponseDto> getAllUsers(String role, String username, String email, Pageable pageable) {
+        return userRepository.findActiveUsersByFilters(role, username, email, pageable)
                 .map(UserResponseDto::new);
     }
 

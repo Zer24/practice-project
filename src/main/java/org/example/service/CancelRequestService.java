@@ -1,9 +1,10 @@
 package org.example.service;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.example.domain.Booking;
-import org.example.domain.enums.BookingStatus;
 import org.example.domain.CancelRequest;
+import org.example.domain.enums.BookingStatus;
 import org.example.domain.enums.CancelRequestStatus;
 import org.example.dto.CancelRequestCreateDto;
 import org.example.dto.CancelRequestDto;
@@ -15,12 +16,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
-import jakarta.validation.Valid;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Validated
@@ -53,12 +51,7 @@ public class CancelRequestService {
 
         return convertToDto(saved);
     }
-    public List<CancelRequestDto> getAllCancelRequests() {
-        return cancelRequestRepository.findAll()
-                .stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
+
     public Page<CancelRequestDto> getAllCancelRequests(Pageable pageable) {
         return cancelRequestRepository.findAll(pageable)
                 .map(this::convertToDto);
@@ -67,23 +60,6 @@ public class CancelRequestService {
     public Page<CancelRequestDto> getCancelRequestsByUser(UUID userId, Pageable pageable) {
         return cancelRequestRepository.findByUserId(userId, pageable)
                 .map(this::convertToDto);
-    }
-    public CancelRequestDto getCancelRequest(UUID requestId) {
-        CancelRequest cancelRequest = cancelRequestRepository.findByRequestId(requestId)
-                .orElseThrow(() -> new RuntimeException("Cancel request not found"));
-        return convertToDto(cancelRequest);
-    }
-    public List<CancelRequestDto> getCancelRequestsByUser(UUID userId) {
-        return cancelRequestRepository.findByUserId(userId)
-                .stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
-    public List<CancelRequestDto> getCancelRequestsByStatus(CancelRequestStatus status) {
-        return cancelRequestRepository.findByStatus(status)
-                .stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -120,5 +96,9 @@ public class CancelRequestService {
                 request.getProcessedAt(),
                 request.getProcessedBy()
         );
+    }
+    public Page<CancelRequestDto> getPendingCancelRequests(Pageable pageable) {
+        return cancelRequestRepository.findByStatus(CancelRequestStatus.PENDING, pageable)
+                .map(this::convertToDto);
     }
 }

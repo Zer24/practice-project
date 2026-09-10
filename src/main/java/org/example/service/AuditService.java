@@ -1,14 +1,14 @@
 package org.example.service;
 
-import org.example.domain.enums.AuditAction;
 import org.example.domain.AuditLog;
+import org.example.domain.enums.AuditAction;
+import org.example.dto.AuditLogDto;
 import org.example.repository.AuditLogRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -70,10 +70,6 @@ public class AuditService {
         auditLogRepository.save(log);
     }
 
-    public Page<AuditLog> getAllAuditLogs(Pageable pageable) {
-        return auditLogRepository.findAll(pageable);
-    }
-
     public Page<AuditLog> getAuditLogsByAction(AuditAction action, Pageable pageable) {
         return auditLogRepository.findByAction(action, pageable);
     }
@@ -85,15 +81,22 @@ public class AuditService {
         return auditLogRepository.findByPerformedBy(userId);
     }
 
-    public List<AuditLog> getAuditLogsByEntity(String entityType, String entityId) {
-        return auditLogRepository.findByEntityTypeAndEntityId(entityType, entityId);
+    public Page<AuditLogDto> getAuditLogsByUser(UUID userId, Pageable pageable) {
+        return auditLogRepository.findByPerformedBy(userId, pageable)
+                .map(this::toDto);
     }
 
-    public List<AuditLog> getAuditLogsByDateRange(LocalDateTime start, LocalDateTime end) {
-        return auditLogRepository.findByDateRange(start, end);
-    }
-
-    public List<AuditLog> getAllAuditLogs() {
-        return auditLogRepository.findAll();
+    private AuditLogDto toDto(AuditLog log) {
+        return new AuditLogDto(
+                log.getAuditId(),
+                log.getAction().name(),
+                log.getEntityType(),
+                log.getEntityId(),
+                log.getPerformedBy(),
+                log.getPerformedAt(),
+                log.getOldValue(),
+                log.getNewValue(),
+                log.getDetails()
+        );
     }
 }

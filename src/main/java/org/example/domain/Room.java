@@ -1,5 +1,6 @@
 package org.example.domain;
 
+import jakarta.validation.constraints.Min;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,9 +32,11 @@ public class Room {
     private RoomType roomType;
 
     @BsonProperty("pricePerNight")
+    @Min(value = 1, message = "Цена за ночь должна быть больше 0")
     private BigDecimal pricePerNight;
 
     @BsonProperty("capacity")
+    @Min(value = 1, message = "Вместимость должна быть больше 0")
     private int capacity;
 
     @BsonProperty("description")
@@ -43,6 +46,7 @@ public class Room {
     private List<String> amenities;
 
     @BsonProperty("area")
+    @Min(value = 1, message = "Площадь должна быть больше 0")
     private double area;
 
     @BsonProperty("isDeleted")

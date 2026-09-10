@@ -1,5 +1,7 @@
 package org.example.dto;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
 import java.util.UUID;
@@ -16,6 +18,9 @@ public record HotelCreateDto(
 
         @NotBlank(message = "Address is required")
         String address,
+
+        @Min(0) @Max(5)
+        Double rating,
 
         UUID managerId
 ) {}

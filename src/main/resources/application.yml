@@ -1,24 +1,8 @@
 spring:
-  config:
-    activate:
-      on-profile: local
   data:
     mongodb:
       database: ${MONGODB_DATABASE:hotel_booking_db}
-      host: ${MONGODB_HOST:localhost}
-      port: ${MONGODB_PORT:27017}
-      username: ${MONGODB_USERNAME}
-      password: ${MONGODB_PASSWORD}
-      authentication-database: ${MONGODB_AUTH_DATABASE:hotel_booking_db}
----
-spring:
-  config:
-    activate:
-      on-profile: docker
-  data:
-    mongodb:
-      database: ${MONGODB_DATABASE:hotel_booking_db}
-      host: ${MONGODB_HOST:mongodb}
+      host: ${MONGODB_HOST:localhost}  # localhost для локального запуска
       port: ${MONGODB_PORT:27017}
       username: ${MONGODB_USERNAME}
       password: ${MONGODB_PASSWORD}
@@ -26,6 +10,10 @@ spring:
 
 app:
   security:
+    jwt:
+      secret: ${JWT_SECRET:defaultSecretKeyForJWTTokenGeneration1234567890}
+      access-expiration: ${JWT_ACCESS_EXPIRATION:900000}
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
     bcrypt:
       strength: ${BCRYPT_STRENGTH:10}
 
@@ -79,14 +67,6 @@ business:
       DOUBLE: 15.0
       SUITE: 30.0
       DELUXE: 25.0
-
-  user:
-    default-admin-password: 1234
-    default-admin-username: admin
-    default-admin-email: admin@admin.com
-    min-password-length: 4
-    max-password-length: 100
-    default-role: CUSTOMER
   hotel:
     max-hotels-per-manager: 10
     default-rating: 0.0

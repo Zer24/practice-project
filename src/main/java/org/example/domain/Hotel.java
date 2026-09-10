@@ -39,9 +39,10 @@ public class Hotel {
     @BsonProperty("isDeleted")
     private boolean isDeleted;
 
-    private transient Double rating;  // Не сохраняется в БД
+    @BsonProperty("rating")
+    private Double rating;
 
-    public Hotel(String name, String city, String country, String address, UUID managerId) {
+    public Hotel(String name, String city, String country, String address, UUID managerId, Double rating) {
         this.hotelId = UUID.randomUUID();
         this.name = name;
         this.city = city;
@@ -49,6 +50,6 @@ public class Hotel {
         this.address = address;
         this.managerId = managerId;
         this.isDeleted = false;
-        this.rating = 0.0;
+        this.rating=rating;
     }
 }

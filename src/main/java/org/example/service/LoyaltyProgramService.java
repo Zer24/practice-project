@@ -1,5 +1,6 @@
 package org.example.service;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.example.config.BusinessProperties;
 import org.example.domain.LoyaltyProgram;
@@ -12,7 +13,6 @@ import org.example.repository.LoyaltyProgramRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
-import jakarta.validation.Valid;
 
 import java.math.BigDecimal;
 import java.util.List;

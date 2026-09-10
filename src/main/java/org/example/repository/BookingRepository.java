@@ -1,7 +1,7 @@
 package org.example.repository;
 
-import org.example.domain.Booking;
 import org.bson.types.ObjectId;
+import org.example.domain.Booking;
 import org.example.domain.enums.BookingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,32 +18,29 @@ import java.util.UUID;
 public interface BookingRepository extends MongoRepository<Booking, ObjectId> {
 
     Optional<Booking> findByBookingId(UUID bookingId);
-    Page<Booking> findByUserIdAndIsDeletedFalse(UUID userId, Pageable pageable);
-    Page<Booking> findByRoomIdInAndIsDeletedFalse(List<UUID> roomIds, Pageable pageable);
-    List<Booking> findByUserId(UUID userId);
-
-    List<Booking> findByUserIdAndIsDeletedFalse(UUID userId);
-
-    List<Booking> findByRoomId(UUID roomId);
-
-    List<Booking> findByRoomIdAndIsDeletedFalse(UUID roomId);
-
-    List<Booking> findByStatusAndIsDeletedFalse(BookingStatus status);
-
-    List<Booking> findByUserIdAndStatusAndIsDeletedFalse(UUID userId, BookingStatus status);
-
-    List<Booking> findByIsDeletedFalse();
-
-    List<Booking> findByCheckInDateBetweenAndIsDeletedFalse(LocalDate startDate, LocalDate endDate);
-
-    boolean existsByBookingIdAndIsDeletedFalse(UUID bookingId);
-
-    @Query("{ 'isDeleted': false }")
-    List<Booking> findAllActive();
-
-    @Query("{ 'userId': ?0, 'isDeleted': false }")
-    List<Booking> findActiveByUserId(UUID userId);
 
     @Query("{ 'roomId': ?0, 'checkInDate': { $lte: ?2 }, 'checkOutDate': { $gte: ?1 }, 'isDeleted': false }")
     List<Booking> findConflictingBookings(UUID roomId, LocalDate checkInDate, LocalDate checkOutDate);
+
+    @Query("{ 'status': { $in: ?2 }, 'checkInDate': { $lt: ?1 }, 'checkOutDate': { $gt: ?0 } }")
+    List<Booking> findActiveBookingsByDateRange(
+            LocalDate checkIn,
+            LocalDate checkOut,
+            List<BookingStatus> statuses
+    );
+
+    @Query("{ 'userId': ?0, 'isDeleted': false }")
+    Page<Booking> findActiveBookingsByUserId(UUID userId, Pageable pageable);
+
+    @Query("{ 'userId': ?0, 'status': ?1, 'isDeleted': false }")
+    Page<Booking> findActiveBookingsByUserIdAndStatus(UUID userId, String status, Pageable pageable);
+
+    @Query("{ 'userId': ?0, 'status': ?1, 'checkInDate': { $gte: ?2 }, 'checkOutDate': { $lte: ?3 }, 'isDeleted': false }")
+    Page<Booking> findActiveBookingsByFiltersWithDates(
+            UUID userId,
+            String status,
+            LocalDate checkInFrom,
+            LocalDate checkOutTo,
+            Pageable pageable
+    );
 }

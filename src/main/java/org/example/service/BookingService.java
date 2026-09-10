@@ -1,32 +1,34 @@
 package org.example.service;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.example.domain.Booking;
-import org.example.domain.enums.BookingStatus;
 import org.example.domain.LoyaltyProgram;
 import org.example.domain.Room;
+import org.example.domain.User;
+import org.example.domain.discountStrategy.DiscountContext;
+import org.example.domain.enums.BookingStatus;
+import org.example.domain.enums.Role;
 import org.example.dto.BookingCreateDto;
 import org.example.dto.BookingResponseDto;
+import org.example.dto.BookingStatusUpdateDto;
 import org.example.dto.BookingUpdateDto;
-import org.example.dto.RoomResponseDto;
 import org.example.mapper.BookingMapper;
 import org.example.repository.BookingRepository;
 import org.example.repository.LoyaltyProgramRepository;
 import org.example.repository.RoomRepository;
-import org.example.domain.discountStrategy.DiscountContext;
+import org.example.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
-import jakarta.validation.Valid;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Validated
@@ -38,7 +40,7 @@ public class BookingService {
     private final RoomRepository roomRepository;
     private final LoyaltyProgramRepository loyaltyProgramRepository;
     private final DiscountContext discountContext;
-    private final RoomService roomService;
+    private final UserRepository userRepository;
 
     @Transactional
     public BookingResponseDto createBooking(@Valid BookingCreateDto dto) {
@@ -71,6 +73,77 @@ public class BookingService {
         return bookingMapper.toDto(saved);
     }
 
+//
+//    public boolean canViewBooking(UUID bookingId, Authentication authentication) {
+//        if (authentication == null || !authentication.isAuthenticated()) return false;
+//
+//        User currentUser = getCurrentUser(authentication);
+//        Booking booking = bookingRepository.findByBookingId(bookingId)
+//                .orElse(null);
+//
+//        // ADMIN может просматривать все
+//        if (currentUser.getRole() == Role.ADMIN) return true;
+//
+//        if (booking == null || booking.isDeleted()) return false;
+//
+//        // MANAGER может просматривать все не удаленные
+//        if (currentUser.getRole() == Role.MANAGER) return true;
+//
+//        // CUSTOMER может просматривать только свои
+//        return booking.getUserId().equals(currentUser.getUserId());
+//    }
+//
+//    public boolean canUpdateBookingStatus(UUID bookingId, BookingStatusUpdateDto dto, Authentication authentication) {
+//        if (authentication == null || !authentication.isAuthenticated()) return false;
+//
+//        User currentUser = getCurrentUser(authentication);
+//        Booking booking = bookingRepository.findByBookingId(bookingId)
+//                .orElse(null);
+//
+//        if (booking == null || booking.isDeleted()) return false;
+//
+//        // ADMIN может обновлять любой статус
+//        if (currentUser.getRole() == Role.ADMIN) {
+//            return true;
+//        }
+//
+//        // MANAGER может подтверждать и завершать
+//        if (currentUser.getRole() == Role.MANAGER)
+//            return dto.status() == BookingStatus.CONFIRMED ||
+//                    dto.status() == BookingStatus.COMPLETED;
+//
+//        // CUSTOMER может только отменять свои бронирования
+//        if (currentUser.getRole() == Role.CUSTOMER)
+//            return booking.getUserId().equals(currentUser.getUserId()) &&
+//                    dto.status() == BookingStatus.CANCELLED;
+//
+//        return false;
+//    }
+//
+//    public boolean isBookingOwner(UUID bookingId, Authentication authentication) {
+//        if (authentication == null || !authentication.isAuthenticated()) return false;
+//
+//        User currentUser = getCurrentUser(authentication);
+//        Booking booking = bookingRepository.findByBookingId(bookingId)
+//                .orElse(null);
+//
+//        return booking != null &&
+//                booking.getUserId().equals(currentUser.getUserId()) &&
+//                !booking.isDeleted();
+//    }
+//
+//    private User getCurrentUser(Authentication authentication) {
+//        if (authentication == null) {
+//            throw new RuntimeException("Authentication required");
+//        }
+//
+//        Object principal = authentication.getPrincipal();
+//        if (principal instanceof UserDetails userDetails) {
+//            return userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+//        }
+//
+//        throw new RuntimeException("Invalid authentication");
+//    }
     @Transactional
     private BigDecimal applyLoyaltyDiscount(UUID userId, BigDecimal totalPrice) {
         try {
@@ -112,22 +185,53 @@ public class BookingService {
         }
     }
 
-    public List<BookingResponseDto> getAllBookings() {
-        return bookingRepository.findByIsDeletedFalse()
-                .stream()
-                .map(bookingMapper::toDto)
-                .collect(Collectors.toList());
-    }
-
-    public BookingResponseDto getBooking(UUID bookingId) {
+    public BookingResponseDto getBookingById(UUID bookingId, UUID userId) {
         Booking booking = bookingRepository.findByBookingId(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
+
+        User user =userRepository.findByUserId(userId).orElseThrow();
 
         if (booking.isDeleted()) {
             throw new RuntimeException("Booking is deleted");
         }
-
+        if (user.getRole() == Role.CUSTOMER && !booking.getUserId().equals(userId)) {
+            throw new RuntimeException("You don't have permission to view this booking");
+        }
         return bookingMapper.toDto(booking);
+    }
+    public Page<BookingResponseDto> getBookings(UUID userId, String status, String fromDate, String toDate, Pageable pageable) {
+        LocalDate checkInFrom = null;
+        LocalDate checkOutTo = null;
+
+        if (fromDate != null && !fromDate.isEmpty()) {
+            checkInFrom = LocalDate.parse(fromDate);
+        }
+        if (toDate != null && !toDate.isEmpty()) {
+            checkOutTo = LocalDate.parse(toDate);
+        }
+
+        if (status != null && !status.isEmpty()) {
+            BookingStatus bookingStatus = BookingStatus.valueOf(status.toUpperCase());
+
+            if (checkInFrom != null && checkOutTo != null) {
+                return bookingRepository.findActiveBookingsByFiltersWithDates(
+                        userId,
+                        bookingStatus.name(),
+                        checkInFrom,
+                        checkOutTo,
+                        pageable
+                ).map(bookingMapper::toDto);
+            } else {
+                return bookingRepository.findActiveBookingsByUserIdAndStatus(
+                        userId,
+                        bookingStatus.name(),
+                        pageable
+                ).map(bookingMapper::toDto);
+            }
+        } else {
+            return bookingRepository.findActiveBookingsByUserId(userId, pageable)
+                    .map(bookingMapper::toDto);
+        }
     }
 
     @Transactional
@@ -173,64 +277,57 @@ public class BookingService {
     }
 
     @Transactional
-    public void cancelBooking(UUID bookingId) {
+    public void softDeleteBooking(UUID bookingId, UUID userId) {
         Booking booking = bookingRepository.findByBookingId(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
 
-        if (booking.isDeleted()) {
-            throw new RuntimeException("Booking is deleted");
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Only ADMIN or can delete bookings");
         }
 
-        booking.setStatus(BookingStatus.CANCELLED);
-        bookingRepository.save(booking);
-    }
-
-    @Transactional
-    public void confirmBooking(UUID bookingId) {
-        Booking booking = bookingRepository.findByBookingId(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
-
         if (booking.isDeleted()) {
-            throw new RuntimeException("Booking is deleted");
+            throw new RuntimeException("Booking is already deleted");
         }
-
-        booking.setStatus(BookingStatus.CONFIRMED);
-        bookingRepository.save(booking);
-    }
-
-    @Transactional
-    public void softDeleteBooking(UUID bookingId) {
-        Booking booking = bookingRepository.findByBookingId(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
 
         booking.setDeleted(true);
         bookingRepository.save(booking);
     }
+    @Transactional
+    public void updateBookingStatus(UUID bookingId, BookingStatusUpdateDto dto, UUID userId) {
+        Booking booking = bookingRepository.findByBookingId(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
+        User user = userRepository.findByUserId(userId).orElseThrow();
 
-    public List<BookingResponseDto> getBookingsByUser(UUID userId) {
-        return bookingRepository.findByUserIdAndIsDeletedFalse(userId)
-                .stream()
-                .map(bookingMapper::toDto)
-                .collect(Collectors.toList());
-    }
-    public Page<BookingResponseDto> getBookingsByUser(UUID userId, Pageable pageable) {
-        return bookingRepository.findByUserIdAndIsDeletedFalse(userId, pageable)
-                .map(bookingMapper::toDto);
+        // Проверяем, что пользователь имеет право обновлять это бронирование
+        if (user.getRole() != Role.ADMIN) {
+            if (user.getRole() == Role.MANAGER) {
+                if (!(dto.status() == BookingStatus.CONFIRMED || dto.status() == BookingStatus.COMPLETED)) {
+                    throw new RuntimeException("Manager can only confirm or complete booking");
+                }
+            } else if (user.getRole() == Role.CUSTOMER) {
+                if (dto.status() != BookingStatus.CANCELLED) {
+                    throw new RuntimeException("Customer can only cancel booking");
+                }
+            }
+        }
+
+        if (booking.isDeleted()) {
+            throw new RuntimeException("Cannot update deleted booking");
+        }
+
+        if(booking.getStatus() == BookingStatus.COMPLETED && dto.status()==BookingStatus.CANCELLED){
+            throw new RuntimeException("Cannot cancel completed booking");
+        }
+        if (dto.status() != null) {
+            booking.setStatus(dto.status());
+        } else {
+            throw new RuntimeException("Status cannot be null");
+        }
+
+        bookingRepository.save(booking);
     }
 
-    public Page<BookingResponseDto> getBookingsByHotel(UUID hotelId, Pageable pageable) {
-        List<UUID> roomIds = roomService.getRoomsByHotel(hotelId).stream()
-                .map(RoomResponseDto::roomId)
-                .collect(Collectors.toList());
-
-        return bookingRepository.findByRoomIdInAndIsDeletedFalse(roomIds, pageable)
-                .map(bookingMapper::toDto);
-    }
-
-    public List<BookingResponseDto> getBookingsByStatus(BookingStatus status) {
-        return bookingRepository.findByStatusAndIsDeletedFalse(status)
-                .stream()
-                .map(bookingMapper::toDto)
-                .collect(Collectors.toList());
-    }
 }
