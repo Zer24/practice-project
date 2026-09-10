@@ -56,13 +56,11 @@ public class AuthController {
     public ResponseEntity<AuthResponseDto> refresh(@Valid @RequestBody RefreshTokenRequestDto request) {
         String refreshToken = request.refreshToken();
 
-        if (!tokenProvider.validateToken(refreshToken)) {
+        if (!tokenProvider.validateToken(refreshToken))
             throw new RuntimeException("Invalid refresh token");
-        }
 
-        if (!"refresh".equals(tokenProvider.getTokenType(refreshToken))) {
+        if (!"refresh".equals(tokenProvider.getTokenType(refreshToken)))
             throw new RuntimeException("Invalid token type");
-        }
 
         refreshTokenService.validateRefreshToken(refreshToken);
 

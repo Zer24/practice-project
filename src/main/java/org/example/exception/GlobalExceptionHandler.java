@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,6 +37,46 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
+                .contentType(MediaType.parseMediaType(PROBLEM_JSON_TYPE))
+                .body(problemDetails);
+    }
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<ProblemDetails> handleInvalidPasswordException(
+            InvalidPasswordException ex,
+            WebRequest request) {
+
+        ProblemDetails problemDetails = ProblemDetails.builder()
+                .type("https://example.com/errors/unauthorized")
+                .title("Unauthorized")
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .detail(ex.getMessage())
+                .instance(request.getDescription(false))
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .contentType(MediaType.parseMediaType(PROBLEM_JSON_TYPE))
+                .body(problemDetails);
+    }
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemDetails> handleAccessDeniedException(
+            AccessDeniedException ex,
+            WebRequest request) {
+
+        log.warn("Access denied: {}", ex.getMessage());
+
+        ProblemDetails problemDetails = ProblemDetails.builder()
+                .type("https://example.com/errors/forbidden")
+                .title("Forbidden")
+                .status(HttpStatus.FORBIDDEN.value())
+                .detail("You don't have permission to access this resource")
+                .instance(request.getDescription(false))
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
                 .contentType(MediaType.parseMediaType(PROBLEM_JSON_TYPE))
                 .body(problemDetails);
     }

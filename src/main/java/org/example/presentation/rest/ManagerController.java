@@ -19,7 +19,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/manager")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('MANAGER')")
+@PreAuthorize("hasAnyRole('MANAGER', 'ADMIN', 'ROLE_ADMIN')")
 public class ManagerController {
 
     private final CancelRequestService cancelRequestService;

@@ -7,6 +7,8 @@ import org.example.domain.enums.Role;
 import org.example.dto.UserCreateDto;
 import org.example.dto.UserResponseDto;
 import org.example.dto.UserUpdateDto;
+import org.example.exception.DuplicateException;
+import org.example.exception.InvalidPasswordException;
 import org.example.mapper.UserMapper;
 import org.example.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -32,10 +34,10 @@ public class UserService {
     @Transactional
     public UserResponseDto createUser(@Valid UserCreateDto dto) {
         if (userRepository.existsByUsernameAndIsDeletedFalse(dto.username())) {
-            throw new RuntimeException("User with username " + dto.username() + " already exists");
+            throw new DuplicateException("User with username " + dto.username() + " already exists");
         }
         if (userRepository.existsByEmailAndIsDeletedFalse(dto.email())) {
-            throw new RuntimeException("User with email " + dto.email() + " already exists");
+            throw new DuplicateException("User with email " + dto.email() + " already exists");
         }
 
         String hashedPassword = passwordEncoder.encode(dto.password());
@@ -139,7 +141,7 @@ public class UserService {
         }
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Invalid password");
+            throw new InvalidPasswordException("Invalid password");
         }
 
         return new UserResponseDto(user);

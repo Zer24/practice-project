@@ -33,13 +33,11 @@ public class RefreshTokenService {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Refresh token not found"));
 
-        if (refreshToken.isRevoked()) {
+        if (refreshToken.isRevoked())
             throw new RuntimeException("Refresh token has been revoked");
-        }
 
-        if (refreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+        if (refreshToken.getExpiryDate().isBefore(LocalDateTime.now()))
             throw new RuntimeException("Refresh token has expired");
-        }
 
         return refreshToken;
     }
